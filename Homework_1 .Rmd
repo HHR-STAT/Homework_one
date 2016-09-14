@@ -1,0 +1,21 @@
+---
+title: "Homework 1"
+author: "Helene, Rui, Hong"
+date: "September 12, 2016"
+output: 
+  html_document:
+    toc: yes
+    toc_depth: 5
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Question 2 
+
+### Question 3 
+
+### Question 4 
+
+### Question 5 
