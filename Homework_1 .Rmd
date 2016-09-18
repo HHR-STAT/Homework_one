@@ -153,7 +153,7 @@ identify(paydata$payroll, paydata$avgwin, labels=paydata$team, plot=TRUE)
 ######Answer: Using the regression model in myfit1, we would have predicted that a team winning 54% of all games between 1998 and 2014 should have a total payroll over that time between 0.95 and 2.27 billion dollars. Given this result, we can say that the Oakland A's performed beyond expectation for their budget. 
 
 #####iv) What is the best model you could build on the basis of this data to capture the important factors affecting winning percentage in 2014 and predict that percentage for 2015? 
-##Describe the process of your analysis. What criterion are you using? Report your findings.
+#####Describe the process of your analysis. What criterion are you using? Report your findings.
 
   myfit2014 <- lm(pctwin.2014~payroll.2014, data=paydata1)  
   summary(myfit2014)
