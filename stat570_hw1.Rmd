@@ -1,0 +1,698 @@
+---
+title: "Homework 1"
+author: "Helene, Rui, Hong"
+date: "September 12, 2016"
+output: 
+  html_document:
+    toc: yes
+    toc_depth: 4
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=4, fig.height=3.5, fig.path='Figs/',
+                      echo=TRUE, warning=FALSE, message=FALSE)
+options(scipen=1, digits=2)
+```
+
+### Question 1
+
+### Question 2: The Radio Survey Dataset
+
+#### a) Import and clean the data
+
+
+ Read the data into R 
+```{r, import, echo = F}
+## Clear the R environment, and import necessary packages. 
+rm(list=ls())
+library(plyr)
+library(ggplot2)
+library(sqldf)
+
+dir <- "C:/Users/rpei.JANUS/Desktop/stat_571_hw1/data/" # this should be the folder containing data.
+setwd(dir)
+#survey_raw <- read.csv("/Users/Rui/Dropbox/Upenn/Stat571/Data/Survey_results_final.csv")
+survey_raw <- read.csv("Survey_results_final.csv")
+
+```
+
+Extract only the variables of interest.
+```{r extract_variables}
+cols_keep <- c("WorkTimeInSeconds", "Answer.Age", "Answer.Education", "Answer.Gender", "Answer.HouseHoldIncome", "Answer.Sirius.Radio", "Answer.Wharton.Radio")
+survey <- survey_raw[cols_keep]
+colnames(survey) <- c("worktime", "age", "edu", "gender", "income", "sirius", "wharton")
+```
+
+
+
+```{r cleaning }
+## cleaning the gender variable
+print("Answers given to Gender.")
+levels(survey$gender)
+survey <- survey[-c(which(survey$gender == "")),]
+## cleaning the age variable
+print("Answers given to Age.")
+levels(survey$age)
+survey <- survey[-which(survey$age == ""),]
+survey <- survey[-which(survey$age == "female"),]
+survey$age[which(survey$age == "223")] <- "23"
+survey$age[which(survey$age == "27`")] <- "27"
+survey$age[which(survey$age == "4")] <- "40"  # not sure if should delete this data point
+survey$age[which(survey$age == "Eighteen (18)")] <- "18"
+survey$age <- as.numeric(levels(survey$age))[survey$age]
+## cleaning up the education variable
+print("Ansers given to education")
+unique(survey$edu)
+survey <- survey[-which(survey$edu == "select one"),]
+```
+
+Clean the data
+
+* Remove data points with gender ""
+
+* Remove data points with age = "", "female"
+
+* Replace mistyped age = "223", "4", "Eighteen (18)", "27`"
+
+* Remove data points with education = "select one"
+
+
+#### b) summarize all the variables collected 
+
+**Gender **
+
+```{r summarize_gender}
+a <- summary(survey$gender)[2:3]
+gender <- c("female", "male")
+number <- c(a[1]/(a[1] + a[2]),a[2]/(a[1] + a[2]))
+gender <- data.frame(gender, number)
+
+p <- ggplot(gender, aes(x = 1, y = number, fill = gender)) + 
+  geom_bar(stat="identity") +
+  coord_polar(theta = 'y')
+p <- p + 
+  geom_bar(stat = "identity", color = 'black') +
+  guides(fill=guide_legend(override.aes=list(colour=NA))) +
+  theme(axis.ticks=element_blank(),  # the axis ticks
+          axis.title=element_blank(),  # the axis labels
+          axis.text.y=element_blank()) # the 0.75, 1.00, 1.25 labels.
+print(p)
+```
+
+58% of the sample is male. 
+
+**Work time **
+```{r summarize_worktime}
+summary(survey$worktime)
+f1 <- ggplot(survey, aes(worktime, fill = gender)) + 
+  geom_histogram(bins = 60) +
+  xlab("Work Time (s)") + ylab("Count") + 
+  ggtitle("Distribution of work time")
+f1
+```
+**Age **
+```{r summarize_age}
+summary(survey$age)
+sd(survey$age)
+f2 <- ggplot(survey, aes(age, fill = gender)) + 
+  geom_histogram(bins = 30) +
+  xlab("Age") + ylab("Count") + 
+  ggtitle("Distribution of participant age")
+f2
+```
+**Education **
+```{r summarize_education}
+survey$edu <- revalue(survey$edu, c("Bachelor’s degree or other 4-year degree" = "Bachelor", 
+                      "Graduate or professional degree" = "Graduate",
+                      "High school graduate (or equivalent)" = "High school",
+                      "Less than 12 years; no high school diploma" = "<12",
+                      "Other" = "Other",
+                      "Some college, no diploma; or Associate’s degree" = "Some college",
+                      "select one" = "select one"   
+                      ))
+summary(survey$edu)
+f <- ggplot(survey, aes(x = edu, fill = gender)) + geom_bar(position = "dodge")
+print(f)
+```
+
+**Income **
+```{r summarize_income}
+survey$income_mean <- NA
+survey$income_mean[which(survey$income == "$15,000 - $30,000")] <- mean(c(15000, 30000))
+survey$income_mean[which(survey$income == "$30,000 - $50,000")] <- mean(c(30000, 50000))
+survey$income_mean[which(survey$income == "$50,000 - $75,000")] <- mean(c(50000, 75000))
+survey$income_mean[which(survey$income == "$75,000 - $150,000")] <- mean(c(75000, 150000))
+survey$income_mean[which(survey$income == "Above $150,000")] <- (150000)
+survey$income_mean[which(survey$income == "Less than $15,000")] <- (15000)
+survey$income_mean <- as.numeric(survey$income_mean) 
+table(survey$income_mean)
+
+ggplot(survey,aes(income_mean, fill = gender)) + 
+  geom_bar(position = "dodge")
+```
+
+
+### b) Sample properties
+#### b.1) Sample vs. U.S. population
+Does this sample appear to be a random sample from the general population of the U. S.? IF so we can get our estimate easily. (Utilize your control variables, compare them to sources such as the CIA world factbook).
+```{r sample_US}
+n <- length(survey$age) # total sample size
+p1 <- length(which(survey$age <25))
+p2 <- length(which(survey$age < 55)) - p1
+p3 <- length(which(survey$age < 65)) - p1 - p2
+p4 <- length(which(survey$age > 64))
+
+df1 <- survey[which(survey$age < 25),]
+d1 <- summary(df1$gender)
+df2 <- survey[setdiff(which(survey$age < 55), which(survey$age < 25)),]
+d2 <- summary(df2$gender)
+df3 <- survey[setdiff(which(survey$age < 65), which(survey$age < 55)),]
+d3 <- summary(df3$gender)
+df4 <- survey[which(survey$age > 64),]
+d4 <- summary(df4$gender)
+
+```
+
+
+Age group | CIA age structure (\%) | Sample age structure (\%) | CIA sex ratio (males/female) | Sample sex ratio (males/female) 
+------------- | -------------  | -------------  | -------------  | ------------- 
+0 - 14 years      | 18.99    | 0           | 1.04            | NA     
+15 - 24 years     | 13.64   |    `r 100 * p1/n`     | 1.05      | `r  d1[3]/d1[2]`                    
+25 - 54 years     | 39.76   |  `r 100 *p2/n`    | 1          |   `r d2[3]/d2[2]`
+55 - 64 years     | 12.73     | `r 100 *p3/n`   | 0.93     |     `r d3[3]/d3[2]`                          
+65 years and over | 14.88  |  `r 100 *p4/n` | 0.79            |   `r d4[3]/d4[2]`                        
+
+#### b 2) Sample vs. mTurk population
+Does this appear to be a random sample from mTurk population?
+
+We downloaded demographic data of 5000 most recent mTurk surveys from https://mturk-surveys.appspot.com/, and compared this demographic information with our sample. 
+```{r sample_mturk}
+setwd(dir)
+mturk <- read.csv("mturk_surveys.csv")
+
+n_mturk <- length(mturk$Age)
+mf1 <- mturk[which(mturk$Age < 25),]
+m1 <- summary(mf1$gender)
+mf2 <- mturk[setdiff(which(mturk$Age < 55),which(mturk$Age < 25)),]
+m2 <- summary(mf2$gender)
+mf3 <- mturk[setdiff(which(mturk$Age < 65),which(mturk$Age < 55)),]
+m3 <- summary(mf3$gender)
+mf4 <- mturk[which(mturk$Age > 64),]
+m4 <- summary(mf4$gender)
+
+```
+
+Age group | MTurk age structure (\%) | Sample age structure (\%) | MTurk sex ratio (males/female) | Sample sex ratio (males/female) 
+------------- | -------------  | -------------  | -------------  | ------------- 
+16 - 24 years     |  `r 100*length(mf1$Age)/n_mturk`  |   `r 100 * p1/n`     | `r  m1[2]/m1[1]` | `r  d1[3]/d1[2]`                    
+25 - 54 years     |  `r 100*length(mf2$Age)/n_mturk`  |   `r 100 * p2/n`   | `r  m2[2]/m2[1]`    |   `r d2[3]/d2[2]`
+55 - 64 years     | `r 100*length(mf3$Age)/n_mturk`    |  `r 100 * p3/n` |`r  m3[2]/m3[1]`    |     `r d3[3]/d3[2]`                          
+65 years and over |  `r 100*length(mf4$Age)/n_mturk` |  `r 100 * p4/n` | `r  m4[2]/m4[1]`   |   `r d4[3]/d4[2]`  
+
+
+This table suggests that our sample is a fairly good representation of Amazon Mechanical Turk U.S. population.
+
+#### b  3) Estimating U.S. Wharton radio listeners.
+Assume that the proportion of Wharton listeners vs. that of Sirius listeners remains the same in the general population as it is in the MTURK population. Use the data to provide an estimate of the number of Wharton listeners in the U. S. In order to make this estimate do you need to break down the proportion of Wharton to Sirius by age? Provide some graphical or numerical evidence to support your reasoning.
+
+We break down the proportion of Wharton to Sirius listeners by age.  **Here we are assuming that sample represents MTurk population **
+
+Age group |  CIA age structure (\%) | MTurk age structure (\%) |  Wharton to Sirius listeners (\%)
+------------- | -------------  | -------------  |  ------------- 
+16 - 24 years    | 13.64  |  `r 100*length(mf1$Age)/n_mturk`  | `r summary(df1$wharton)[3]/summary(df1$sirius)[3]`                   
+25 - 54 years    | 39.76  |  `r 100*length(mf2$Age)/n_mturk`  | `r summary(df2$wharton)[3]/summary(df2$sirius)[3]`
+55 - 64 years    | 12.73 | `r 100*length(mf3$Age)/n_mturk`   |  `r summary(df3$wharton)[3]/summary(df3$sirius)[3]`
+65 years and over | 14.88 |  `r 100*length(mf4$Age)/n_mturk`  |  `r summary(df4$wharton)[3]/summary(df4$sirius)[3]`
+
+One approach is to estimate the proportion of the Wharton listeners to that of the Sirius listeners, p, so that we will come up with an audience size estimate of approximately 51.6 million times p.
+
+Hence, we estimate the proportion of the Wharton listeners to that of the Sirius listeners in the U.S 
+$$ p = 13.64\% \times 0.06 + 39.76\% \times 0.05 + 12.73\% \times 0.03 + 14.88\% \times 0.14 $$
+p = `r 0.1364*0.06 + 0.3976*0.05 + 0.1273*0.03 + 0.1488*0.14`
+
+Number of wharton listeners =  $p \times 51.6 =  2.6 million$ 
+
+
+
+
+
+
+### Question 3 
+#### a. i) Generate this sample of (x,y) pairs and make a scatter plot:
+``` {r 3.a.1}
+x = seq(0,1,length=40)
+y = vector(mode = "numeric", length = 40)
+for (i in 1:40){
+y[i] = 1 + 1.2*x[i] + rnorm(1,0,sd=2)}
+plot(x,y)
+```
+#### ii) fit an lm model and draw the line over the plot above
+```{r 3.a.2}
+fitlm = lm(y~x)
+summary(fitlm)
+
+lm(formula = y ~ x)
+```
+
+
+#### graphical representation
+```{r 3.a.2.1}
+dat <- data.frame(x,y)
+ggplot(dat, aes(x=x, y=y)) +
+    geom_point() +    # Use hollow circles
+    geom_smooth(method=lm,   # Add linear regression line
+                se=FALSE)    # Don't add shaded confidence region
+
+```
+The estimated beta0 is 1.3945, estimated beta1 is 0.5286.
+The estimated equation is y = 1.3945 + 0.5286*x
+The 95% confindence interval for beta1 is (-1.4447320 2.501886), which captures the true beta1. The RSE is 1.825, it is close (?) to ##2.
+
+# b. i) The function used for generating the samples:
+```{r 3.b.1}
+simlm = function(samplesize, nosim, b0, b1, errsd){
+  #This function simulate an experiment with user defined sample size, number of trials, true coefficients and
+  #standard deviations of the relation. For this homework assignment, 100 trials of sample size 40 experiments
+  #with the parameters specified were experimented.
+  x = seq(0,1,length=samplesize) #The values of x are fixed.
+  b0_hat = vector(mode="numeric",length=0) #Vectors to be used to store the
+  b1_hat = vector(mode="numeric",length=0) #final results
+  
+  b0_ci_ub = vector(mode="numeric",length=0)
+  b0_ci_lb = vector(mode="numeric",length=0)
+  
+  b1_ci_ub = vector(mode="numeric",length=0)
+  b1_ci_lb = vector(mode="numeric",length=0)
+  
+  for (k in 1:nosim){ 
+    #repeat a number of times with the specified parameters
+    y = b0 + b1*x + rnorm(samplesize, errsd)
+    lm_model = lm(y~x)
+    coef = summary(lm_model)$coefficients
+    b0_hatc = coef[1,1]; b0_se = coef[1,2]; #estimates of the current run
+    b1_hatc = coef[2,1]; b1_se = coef[2,2];
+    
+    t = qt(0.975,df=samplesize-2)
+    b0_ci_ubc = b0_hatc + t*b0_se; b0_ci_lbc = b0_hatc - t*b0_se
+    b1_ci_ubc = b1_hatc + t*b1_se; b1_ci_lbc = b1_hatc - t*b1_se
+    
+    b0_hat = append(b0_hat, b0_hatc)
+    b1_hat = append(b1_hat, b1_hatc)
+    b0_ci_ub = append(b0_ci_ub, b0_ci_ubc)
+    b0_ci_lb = append(b0_ci_lb, b0_ci_lbc)
+    b1_ci_ub = append(b1_ci_ub, b1_ci_ubc)
+    b1_ci_lb = append(b1_ci_lb, b1_ci_lbc)
+  }
+  result = cbind(b0_hat, b1_hat, b0_ci_ub, b0_ci_lb, b1_ci_ub, b1_ci_lb)
+}
+#samp = simlm(40,100,1,1.2,2)
+```
+This function returns a table of the estimated parameters and CIs for the 100 trials.
+#### ii) summary of the LS estimates of beta1
+```{r 3.b.2}
+# = samp[,2] 
+#hist(beta1, breaks=10,col=rgb(1,0.5,0.3),  main="The distribution of estimated beta1") 
+```
+The distribution of beta1 seems to center around 1.3, which is close (?) to the true beta1.
+
+####iii) 97 times my 95% CI convered the true beta1.
+Still trying to put this together....
+
+
+
+
+### Question 4 : Major League Baseball
+
+####i) Summarize the data by providing suitable summary statistics and graphs. Write a brief report for your findings.
+
+#####Load and examine dataset:
+```{r 4.a.1}
+setwd(dir)
+paydata <- read.csv("MLPayData_Total.csv")
+names(paydata)
+
+#####select the variables we are interested in: team names, team total payroll from 1998 to 2014 (in billions), fraction of games won from 1998 to 2014, and payroll (in millions) and fraction of games won for the years we want to examine:  
+paydata1 <- paydata[,c(3,1:2,4,54,12,46,20,38)]
+head(paydata1)
+
+#####rename the variables to more intelligible names: 
+names(paydata1) <- c("team","tot.payroll","avgwin","payroll.1998","pctwin.1998","payroll.2006","pctwin.2006","payroll.2014","pctwin.2014")
+head(paydata1)
+
+#####create a vector of the mean of each variable, beside team 
+tot.mean <- apply(X = paydata1[,-1], MARGIN = 2, FUN = mean)
+
+#####create tot.mean row with the mean for all variables............. work in progress.................. it's not working!!!!!!! 
+team <- "tot.mean"
+tot.mean <- rbind(team, tot.mean)
+
+#paydata2 <- rbind(paydata1, tot.mean)
+
+tot.mean <- c("tot.mean",tot.mean)
+paydata1[,1]
+
+#####display the observations for the teams we are interested in (Boston Red Sox & Oakland A's), plus the first three teams in the dataset.  
+paydata1[c(4,20,1,2,3),]
+
+#####boxplots for tot.payroll and avgwin 
+boxplot(paydata$payroll)
+######WORK IN PROGRESS......trying to put a horizontal line for A's and Red Sox 
+```
+  abline(
+    h = 0.5487172,
+    col = "lightblue",
+    lwd = 2 
+  )
+```{r 4}
+######END OF WORK IN PROGRESS....... 
+boxplot(paydata$avgwin)
+
+#####scatterplot of average by total payroll from 1998 to 2014 
+plot(paydata$payroll, paydata$avgwin, 
+       pch  = 16, 
+       cex  = 1,
+       col  = "blue",
+       xlab = "Payroll", 
+       ylab = "Win Percentage",
+       main = "MLB Teams's Overall Win Percentage vs. Payroll")
+
+######WORK IN PROGRESS: identify the Oakland A's and Boston Red Sox in the scatterplot. 
+```
+identify(paydata$payroll, paydata$avgwin, labels=paydata$team, plot=TRUE) 
+
+####ii) For a given year, is payroll a significant variable to predict the winning percentage of that year? Choose a year and run a regression to examine this. You may try this for a few different years. Explain your results.
+
+  myfit0 <- lm(avgwin~tot.payroll, data=paydata1)
+  summary(myfit0)
+  
+  myfit1998 <- lm(pctwin.1998~payroll.1998, data=paydata1)  
+  summary(myfit1998)
+  
+  myfit2006 <- lm(pctwin.2006~payroll.2006, data=paydata1)  
+  summary(myfit2006)
+  
+  myfit2014 <- lm(pctwin.2014~payroll.2014, data=paydata1)  
+  summary(myfit2014)
+  
+  par(mfrow = c(2,2))
+  
+    plot(paydata1$tot.payroll, paydata$avgwin, 
+       pch  = 16, 
+       cex  = 1.2,
+       col  = "blue",
+       xlab = "Payroll", 
+       ylab = "Win Percentage",
+       xlim = c(0, 2.5),
+       ylim = c(0.4, 0.7),
+       main = "MLB Teams's Overall Win Percentage vs. Payroll")
+    abline(myfit0, col="red", lwd=4)
+    
+    plot(paydata1$payroll.1998, paydata1$pctwin.1998, 
+       pch  = 16, 
+       cex  = 1.2,
+       col  = "blue",
+       xlab = "Payroll", 
+       ylab = "Win Percentage",
+       xlim = c(0, 250),
+       ylim = c(0.4, 0.7),
+       main = "MLB Teams's Win Percentage vs. Payroll in 1998")
+    abline(myfit1998, col="red", lwd=4) 
+
+    plot(paydata1$payroll.2006, paydata1$pctwin.2006, 
+       pch  = 16, 
+       cex  = 1.2,
+       col  = "blue",
+       xlab = "Payroll", 
+       ylab = "Win Percentage",
+       xlim = c(0, 250),
+       ylim = c(0.4, 0.7),
+       main = "MLB Teams's Win Percentage vs. Payroll in 2006")
+    abline(myfit2006, col="red", lwd=4) 
+  
+    plot(paydata1$payroll.2014, paydata1$pctwin.2014, 
+       pch  = 16, 
+       cex  = 1.2,
+       col  = "blue",
+       xlab = "Payroll", 
+       ylab = "Win Percentage",
+       xlim = c(0, 250),
+       ylim = c(0.4, 0.7),
+       main = "MLB Teams's Win Percentage vs. Payroll in 2014")
+    abline(myfit2014, col="red", lwd=4) 
+  
+####iii) Now use the aggregated information, and use regression to analyze the relation between total payroll and overall winning percentage. Run appropriate model(s) to answer the following questions.
+#####a) In this analysis do the Boston Red Sox perform reasonably well given their total payroll? [Use a 95% prediction interval.]
+
+  attach(paydata1)
+  
+  new <- data.frame(tot.payroll=c(1.972359)) #Boston Red Sox's total payroll 
+  CImean <- predict(myfit0, new, interval="prediction", se.fit=TRUE)  
+  CImean
+
+######Answer: The Boston Red Sox, with an average of 55% of games won between 1998 and 2014, falls within the confidence interval in terms of their performance given their payroll.
+
+#####b) In view of their winning percentage, how much payroll should the Oakland A’s have spent? [Use a 95% prediction interval.]
+
+  myfit1 <- lm(tot.payroll~avgwin, data=paydata1)
+  summary(myfit1)
+
+  new2 <- data.frame(avgwin=c(0.5445067)) #Oakland A's average of games won between 1998 and 2014
+    CImean <- predict(myfit1, new2, interval="prediction", se.fit=TRUE)  
+    CImean
+
+######Answer: Using the regression model in myfit1, we would have predicted that a team winning 54% of all games between 1998 and 2014 should have a total payroll over that time between 0.95 and 2.27 billion dollars. Given this result, we can say that the Oakland A's performed beyond expectation for their budget. 
+
+#####iv) What is the best model you could build on the basis of this data to capture the important factors affecting winning percentage in 2014 and predict that percentage for 2015? 
+#####Describe the process of your analysis. What criterion are you using? Report your findings.
+
+  myfit2014 <- lm(pctwin.2014~payroll.2014, data=paydata1)  
+  summary(myfit2014)
+
+  attach(paydata1)
+  
+  new3 <- data.frame(payroll.2014=c(162.8174)) #Boston Red Sox's payroll for 2014
+  CImean <- predict(myfit2014, new3, interval="prediction", se.fit=TRUE) #Prediction of Boston Red Sox's performance in 2015 based on the myfit2014 model, and its payroll in 2014 
+  CImean
+  
+######I really don't know whether this is the right way. Please let me know if you have a better idea! 
+
+
+
+
+### Question 5 
+#### a) i) to get some information about the data
+
+``` 
+{ r import data}
+library(ISLR)
+help(Auto)
+```
+# ii) exploring the data using pairwise plot
+pairs(Auto)
+summary statistics. The result is a table containing the mean, sd, and 25%, 50% and 75% quantiles of each variable
+```
+summary = data.frame(matrix(0, nrow=5, ncol=9))
+for (i in 1:9){
+ave = mean(Auto[,i])
+qt = as.numeric(quantile(Auto[,i]))
+std = sd(Auto[,i])
+summary[1,i]= ave; summary[2,i]=std; summary[3,i]=qt[2]; summary[4,i]=qt[3]
+summary[5,i]=qt[4]}
+colnames(summary) = colnames(Auto)
+row.names(summary) = c("mean","sd","25% quantile", "50% quantile", "75% quantile")
+```
+######anything interesting??
+
+#### b) The time effect over mpg:
+
+First, we constructed a simple linear regression model with time as the single predictor and mpg as response
+
+```
+mdl1 = lm(mpg~year, data=Auto)
+summary(mdl1)
+```
+Call:
+lm(formula = mpg ~ year, data = Auto)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-12.0212  -5.4411  -0.4412   4.9739  18.2088 
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -70.01167    6.64516  -10.54   <2e-16 ***
+year          1.23004    0.08736   14.08   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 6.363 on 390 degrees of freedom
+Multiple R-squared:  0.337,	Adjusted R-squared:  0.3353 
+F-statistic: 198.3 on 1 and 390 DF,  p-value: < 2.2e-16
+
+This model shows that year is a significant predictor over mpg, with about 1.23 mpg increase a year on average. The model explains about 33 percent of the variation of the data.
+
+The second model also considers the effect of horse power over mpg, in addition of  year
+
+```
+mdl2 = lm(mpg~year+horsepower, data=Auto)
+summary(mdl2)
+```
+Call:
+lm(formula = mpg ~ horsepower + year, data = Auto)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-12.0768  -3.0783  -0.4308   2.5884  15.3153 
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -12.739166   5.349027  -2.382   0.0177 *  
+horsepower   -0.131654   0.006341 -20.761   <2e-16 ***
+year          0.657268   0.066262   9.919   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 4.388 on 389 degrees of freedom
+Multiple R-squared:  0.6855,	Adjusted R-squared:  0.6839 
+F-statistic: 423.9 on 2 and 389 DF,  p-value: < 2.2e-16
+
+In this model, year is still a significant predictor at 0.05 level. However, mpg is only predicted to be increasing by about 0.6573 mpg per year, given a same horsepower of the car.
+
+####The CI's of each model are shown below:
+
+```
+> confint(mdl1)
+```
+                 2.5 %     97.5 %
+(Intercept) -83.076498 -56.946851
+year          1.058285   1.401786
+
+> confint(mdl2)
+             d     2.5 %     97.5 %
+(Intercept) -23.2557856 -2.2225457
+horsepower   -0.1441223 -0.1191866
+year          0.5269917  0.7875439
+
+The confidence interval of the first model is (1.058,1.402) and for the second model is (0.527,0.788). The difference is from the different model structure. The first model only considered the effect from time, while ignoring the others. However, the effect from time might be dependent upon effects from other factors, such as the weight of the vehicle and horsepower. When a second predictor is added, namely the horsepower in the second model, we restricted horsepower for the interpretation of time effect. Thus the time in the latter model is interpreted only when horsepower is held constant (at a single level)
+
+The third model for this problem included an interaction term in the model:
+```
+mdl3 = lm(mpg~year*horsepower, data=Auto)
+summary(mdl3)
+```
+Call:
+lm(formula = mpg ~ year * horsepower, data = Auto)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-12.3492  -2.4509  -0.4557   2.4056  14.4437 
+
+Coefficients:
+                  Estimate Std. Error t value Pr(>|t|)    
+(Intercept)     -1.266e+02  1.212e+01 -10.449   <2e-16 ***
+year             2.192e+00  1.613e-01  13.585   <2e-16 ***
+horsepower       1.046e+00  1.154e-01   9.063   <2e-16 ***
+year:horsepower -1.596e-02  1.562e-03 -10.217   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 3.901 on 388 degrees of freedom
+Multiple R-squared:  0.7522,	Adjusted R-squared:  0.7503 
+F-statistic: 392.5 on 3 and 388 DF,  p-value: < 2.2e-16
+
+The interaction term in this model is significant at 0.05 level. This interaction
+thus tells us that the effect of either predictor on the response is dependent
+on the other. In this case, the effect of year, as shown in the model, is the effect
+of year when horsepower is set to zero. Therefore, when horsepower is zero, or
+ has no effect on mpg, mpg is about to increase 2.192 units per year.
+
+#### c) same variable different roles: the number of cylinders
+##### i) The first model treats the number of cylinders as continuous variable:
+```
+> mdl4 = lm(mpg~horsepower + cylinders, data=Auto)
+> summary(mdl4)
+```
+Call:
+lm(formula = mpg ~ horsepower + cylinders, data = Auto)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-11.4378  -3.2422  -0.3721   2.3532  16.9289 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 42.94842    0.77880  55.147  < 2e-16 ***
+horsepower  -0.08612    0.01119  -7.693 1.19e-13 ***
+cylinders   -1.91982    0.25261  -7.600 2.24e-13 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 4.584 on 389 degrees of freedom
+Multiple R-squared:  0.6569,	Adjusted R-squared:  0.6551 
+F-statistic: 372.4 on 2 and 389 DF,  p-value: < 2.2e-16
+
+This model shows that cylinder is a significant predictor at 0.01 level. The
+increase in one cylinder is associated with 1.91982 unit decrease in mpg given
+a certain horsepower.
+
+##### ii) The second model fitted here treats the number of cylinders as categorical
+variable:
+
+```
+> mdl5 = lm(mpg~horsepower + factor(cylinders), data=Auto)
+> summary(mdl5)
+```
+Call:
+lm(formula = mpg ~ horsepower + factor(cylinders), data = Auto)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-9.5917 -2.7067 -0.6102  1.9001 16.3258 
+
+Coefficients:
+                   Estimate Std. Error t value Pr(>|t|)    
+(Intercept)        30.77614    2.41283  12.755  < 2e-16 ***
+horsepower         -0.10303    0.01133  -9.095  < 2e-16 ***
+factor(cylinders)4  6.57344    2.16921   3.030  0.00261 ** 
+factor(cylinders)5  5.07367    3.26661   1.553  0.12120    
+factor(cylinders)6 -0.34406    2.18580  -0.157  0.87501    
+factor(cylinders)8  0.49738    2.27639   0.218  0.82716    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 4.27 on 386 degrees of freedom
+Multiple R-squared:  0.7046,	Adjusted R-squared:  0.7008 
+F-statistic: 184.1 on 5 and 386 DF,  p-value: < 2.2e-16
+
+The model shows that when the car has four cylinders, the fuel efficiency
+will increase on average about 6.57344 mpg. This effect is signigicant
+at 0.01 level. However, given a same horsepower, other number of
+cylinders do not appear to have effects on the car's fuel efficiency.
+
+```
+anova(mdl4,mdl5)
+```
+
+Analysis of Variance Table
+
+Model 1: mpg ~ horsepower + cylinders
+Model 2: mpg ~ horsepower + factor(cylinders)
+  Res.Df    RSS Df Sum of Sq      F    Pr(>F)    
+1    389 8172.5                                  
+2    386 7036.7  3    1135.8 20.769 1.705e-12 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+The F-test shows that the number of cylinders as categorical predictors is
+a significant predictor of fuel efficiency.
+
+##### iii) 
+The fundamental difference between the two models is their treatment of cylinders. In the first model, the number of cylinders was treated as a continuous variable. This treatment assumes the number of cylinders as one homogenous variable, while ignores the inner structure and qualitive difference between cars with different number of cylinders. On the other hand, treating the number of cylinders as discrete, and independent variables encodes theideocyncratic properties of each configuration of the engine (number of cylinders). Therefore the final model returns that only 4 cylinder cars have significantly better fuel efficiency with given horsepower, while other designs don't.
+
+##### d) The final model
+
+
+
+
+
+
