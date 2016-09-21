@@ -228,7 +228,104 @@ p = `r 0.1364*0.06 + 0.3976*0.05 + 0.1273*0.03 + 0.1488*0.14`
 
 Number of wharton listeners =  $p \times 51.6 =  2.6 million$ 
 
+
+
+
+
+
 ### Question 3 
+#### a. i) Generate this sample of (x,y) pairs and make a scatter plot:
+```
+x = seq(0,1,length=40)
+y = vector(mode = "numeric", length = 40)
+for (i in 1:40){
+y[i] = 1 + 1.2*x[i] + rnorm(1,0,sd=2)}
+plot(x,y)
+```
+#### ii) fit an lm model and draw the line over the plot above
+```
+fitlm = lm(y~x)
+summary(fitlm)
+```
+Call:
+```
+lm(formula = y ~ x)
+```
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-3.0597 -1.0192 -0.1022  1.0483  5.2047 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)  
+(Intercept)   1.3945     0.5664   2.462   0.0185 *
+x             0.5286     0.9748   0.542   0.5908  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 1.825 on 38 degrees of freedom
+Multiple R-squared:  0.007679,	Adjusted R-squared:  -0.01844 
+F-statistic: 0.294 on 1 and 38 DF,  p-value: 0.5908
+
+#### graphical representation
+```
+abline(fitlm, col="red", lwd=4)
+```
+The estimated beta0 is 1.3945, estimated beta1 is 0.5286.
+The estimated equation is y = 1.3945 + 0.5286*x
+The 95% confindence interval for beta1 is (-1.4447320 2.501886), which captures the true beta1. The RSE is 1.825, it is close (?) to ##2.
+
+# b. i) The function used for generating the samples:
+```
+simlm = function(samplesize, nosim, b0, b1, errsd){
+  #This function simulate an experiment with user defined sample size, number of trials, true coefficients and
+  #standard deviations of the relation. For this homework assignment, 100 trials of sample size 40 experiments
+  #with the parameters specified were experimented.
+  x = seq(0,1,length=samplesize) #The values of x are fixed.
+  b0_hat = vector(mode="numeric",length=0) #Vectors to be used to store the
+  b1_hat = vector(mode="numeric",length=0) #final results
+  
+  b0_ci_ub = vector(mode="numeric",length=0)
+  b0_ci_lb = vector(mode="numeric",length=0)
+  
+  b1_ci_ub = vector(mode="numeric",length=0)
+  b1_ci_lb = vector(mode="numeric",length=0)
+  
+  for (k in 1:nosim){ 
+    #repeat a number of times with the specified parameters
+    y = b0 + b1*x + rnorm(samplesize, errsd)
+    lm_model = lm(y~x)
+    coef = summary(lm_model)$coefficients
+    b0_hatc = coef[1,1]; b0_se = coef[1,2]; #estimates of the current run
+    b1_hatc = coef[2,1]; b1_se = coef[2,2];
+    
+    t = qt(0.975,df=samplesize-2)
+    b0_ci_ubc = b0_hatc + t*b0_se; b0_ci_lbc = b0_hatc - t*b0_se
+    b1_ci_ubc = b1_hatc + t*b1_se; b1_ci_lbc = b1_hatc - t*b1_se
+    
+    b0_hat = append(b0_hat, b0_hatc)
+    b1_hat = append(b1_hat, b1_hatc)
+    b0_ci_ub = append(b0_ci_ub, b0_ci_ubc)
+    b0_ci_lb = append(b0_ci_lb, b0_ci_lbc)
+    b1_ci_ub = append(b1_ci_ub, b1_ci_ubc)
+    b1_ci_lb = append(b1_ci_lb, b1_ci_lbc)
+  }
+  result = cbind(b0_hat, b1_hat, b0_ci_ub, b0_ci_lb, b1_ci_ub, b1_ci_lb)
+}
+samp = simlm(40,100,1,1.2,2)
+```
+This function returns a table of the estimated parameters and CIs for the 100 trials.
+#### ii) summary of the LS estimates of beta1
+```
+beta1 = samp[,2] 
+histhist(beta1, breaks=10,col=rgb(1,0.5,0.3),  main="The distribution of estimated beta1") 
+```
+The distribution of beta1 seems to center around 1.3, which is close (?) to the true beta1.
+
+####iii) 97 times my 95% CI convered the true beta1.
+Still trying to put this together....
+
+
+
 
 ### Question 4 : Major League Baseball
 
@@ -264,11 +361,13 @@ paydata1[c(4,20,1,2,3),]
 #####boxplots for tot.payroll and avgwin 
 boxplot(paydata$payroll)
 ######WORK IN PROGRESS......trying to put a horizontal line for A's and Red Sox 
+```
   abline(
     h = 0.5487172,
     col = "lightblue",
     lwd = 2 
   )
+```
 ######END OF WORK IN PROGRESS....... 
 boxplot(paydata$avgwin)
 
@@ -381,4 +480,222 @@ identify(paydata$payroll, paydata$avgwin, labels=paydata$team, plot=TRUE)
 ######I really don't know whether this is the right way. Please let me know if you have a better idea! 
 
 
+
+
 ### Question 5 
+#### a) i) to get some information about the data
+
+``` 
+{ r import data}
+library(ISLR)
+help(Auto)
+```
+# ii) exploring the data using pairwise plot
+pairs(Auto)
+summary statistics. The result is a table containing the mean, sd, and 25%, 50% and 75% quantiles of each variable
+```
+summary = data.frame(matrix(0, nrow=5, ncol=9))
+for (i in 1:9){
+ave = mean(Auto[,i])
+qt = as.numeric(quantile(Auto[,i]))
+std = sd(Auto[,i])
+summary[1,i]= ave; summary[2,i]=std; summary[3,i]=qt[2]; summary[4,i]=qt[3]
+summary[5,i]=qt[4]}
+colnames(summary) = colnames(Auto)
+row.names(summary) = c("mean","sd","25% quantile", "50% quantile", "75% quantile")
+```
+######anything interesting??
+
+#### b) The time effect over mpg:
+
+First, we constructed a simple linear regression model with time as the single predictor and mpg as response
+
+```{ r model 1}
+mdl1 = lm(mpg~year, data=Auto)
+summary(mdl1)
+```
+Call:
+lm(formula = mpg ~ year, data = Auto)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-12.0212  -5.4411  -0.4412   4.9739  18.2088 
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -70.01167    6.64516  -10.54   <2e-16 ***
+year          1.23004    0.08736   14.08   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 6.363 on 390 degrees of freedom
+Multiple R-squared:  0.337,	Adjusted R-squared:  0.3353 
+F-statistic: 198.3 on 1 and 390 DF,  p-value: < 2.2e-16
+
+This model shows that year is a significant predictor over mpg, with about 1.23 mpg increase a year on average. The model explains about 33 percent of the variation of the data.
+
+The second model also considers the effect of horse power over mpg, in addition of  year
+
+```{r model 2}
+mdl2 = lm(mpg~year+horsepower, data=Auto)
+summary(mdl2)
+```
+Call:
+lm(formula = mpg ~ horsepower + year, data = Auto)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-12.0768  -3.0783  -0.4308   2.5884  15.3153 
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -12.739166   5.349027  -2.382   0.0177 *  
+horsepower   -0.131654   0.006341 -20.761   <2e-16 ***
+year          0.657268   0.066262   9.919   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 4.388 on 389 degrees of freedom
+Multiple R-squared:  0.6855,	Adjusted R-squared:  0.6839 
+F-statistic: 423.9 on 2 and 389 DF,  p-value: < 2.2e-16
+
+In this model, year is still a significant predictor at 0.05 level. However, mpg is only predicted to be increasing by about 0.6573 mpg per year, given a same horsepower of the car.
+
+####The CI's of each model are shown below:
+
+```{r CI }
+> confint(mdl1)
+```
+                 2.5 %     97.5 %
+(Intercept) -83.076498 -56.946851
+year          1.058285   1.401786
+
+> confint(mdl2)
+             d     2.5 %     97.5 %
+(Intercept) -23.2557856 -2.2225457
+horsepower   -0.1441223 -0.1191866
+year          0.5269917  0.7875439
+
+The confidence interval of the first model is (1.058,1.402) and for the second model is (0.527,0.788). The difference is from the different model structure. The first model only considered the effect from time, while ignoring the others. However, the effect from time might be dependent upon effects from other factors, such as the weight of the vehicle and horsepower. When a second predictor is added, namely the horsepower in the second model, we restricted horsepower for the interpretation of time effect. Thus the time in the latter model is interpreted only when horsepower is held constant (at a single level)
+
+The third model for this problem included an interaction term in the model:
+```{ r model 3}
+mdl3 = lm(mpg~year*horsepower, data=Auto)
+summary(mdl3)
+```
+Call:
+lm(formula = mpg ~ year * horsepower, data = Auto)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-12.3492  -2.4509  -0.4557   2.4056  14.4437 
+
+Coefficients:
+                  Estimate Std. Error t value Pr(>|t|)    
+(Intercept)     -1.266e+02  1.212e+01 -10.449   <2e-16 ***
+year             2.192e+00  1.613e-01  13.585   <2e-16 ***
+horsepower       1.046e+00  1.154e-01   9.063   <2e-16 ***
+year:horsepower -1.596e-02  1.562e-03 -10.217   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 3.901 on 388 degrees of freedom
+Multiple R-squared:  0.7522,	Adjusted R-squared:  0.7503 
+F-statistic: 392.5 on 3 and 388 DF,  p-value: < 2.2e-16
+
+The interaction term in this model is significant at 0.05 level. This interaction
+thus tells us that the effect of either predictor on the response is dependent
+on the other. In this case, the effect of year, as shown in the model, is the effect
+of year when horsepower is set to zero. Therefore, when horsepower is zero, or
+ has no effect on mpg, mpg is about to increase 2.192 units per year.
+
+#### c) same variable different roles: the number of cylinders
+##### i) The first model treats the number of cylinders as continuous variable:
+```{r model 4}
+> mdl4 = lm(mpg~horsepower + cylinders, data=Auto)
+> summary(mdl4)
+```
+Call:
+lm(formula = mpg ~ horsepower + cylinders, data = Auto)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-11.4378  -3.2422  -0.3721   2.3532  16.9289 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 42.94842    0.77880  55.147  < 2e-16 ***
+horsepower  -0.08612    0.01119  -7.693 1.19e-13 ***
+cylinders   -1.91982    0.25261  -7.600 2.24e-13 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 4.584 on 389 degrees of freedom
+Multiple R-squared:  0.6569,	Adjusted R-squared:  0.6551 
+F-statistic: 372.4 on 2 and 389 DF,  p-value: < 2.2e-16
+
+This model shows that cylinder is a significant predictor at 0.01 level. The
+increase in one cylinder is associated with 1.91982 unit decrease in mpg given
+a certain horsepower.
+
+##### ii) The second model fitted here treats the number of cylinders as categorical
+variable:
+
+```{ r model 5 }
+> mdl5 = lm(mpg~horsepower + factor(cylinders), data=Auto)
+> summary(mdl5)
+```
+Call:
+lm(formula = mpg ~ horsepower + factor(cylinders), data = Auto)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-9.5917 -2.7067 -0.6102  1.9001 16.3258 
+
+Coefficients:
+                   Estimate Std. Error t value Pr(>|t|)    
+(Intercept)        30.77614    2.41283  12.755  < 2e-16 ***
+horsepower         -0.10303    0.01133  -9.095  < 2e-16 ***
+factor(cylinders)4  6.57344    2.16921   3.030  0.00261 ** 
+factor(cylinders)5  5.07367    3.26661   1.553  0.12120    
+factor(cylinders)6 -0.34406    2.18580  -0.157  0.87501    
+factor(cylinders)8  0.49738    2.27639   0.218  0.82716    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 4.27 on 386 degrees of freedom
+Multiple R-squared:  0.7046,	Adjusted R-squared:  0.7008 
+F-statistic: 184.1 on 5 and 386 DF,  p-value: < 2.2e-16
+
+The model shows that when the car has four cylinders, the fuel efficiency
+will increase on average about 6.57344 mpg. This effect is signigicant
+at 0.01 level. However, given a same horsepower, other number of
+cylinders do not appear to have effects on the car's fuel efficiency.
+
+```{ r model comparison }
+anova(mdl4,mdl5)
+```
+
+Analysis of Variance Table
+
+Model 1: mpg ~ horsepower + cylinders
+Model 2: mpg ~ horsepower + factor(cylinders)
+  Res.Df    RSS Df Sum of Sq      F    Pr(>F)    
+1    389 8172.5                                  
+2    386 7036.7  3    1135.8 20.769 1.705e-12 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+The F-test shows that the number of cylinders as categorical predictors is
+a significant predictor of fuel efficiency.
+
+##### iii) 
+The fundamental difference between the two models is their treatment of cylinders. In the first model, the number of cylinders was treated as a continuous variable. This treatment assumes the number of cylinders as one homogenous variable, while ignores the inner structure and qualitive difference between cars with different number of cylinders. On the other hand, treating the number of cylinders as discrete, and independent variables encodes theideocyncratic properties of each configuration of the engine (number of cylinders). Therefore the final model returns that only 4 cylinder cars have significantly better fuel efficiency with given horsepower, while other designs don't.
+
+##### d) The final model
+
+
+
+
+
+
