@@ -29,21 +29,18 @@ library(plyr)
 library(ggplot2)
 library(sqldf)
 
-dir <- "C:/Users/rpei.JANUS/Desktop/stat_571_hw1/data/" # this should be the folder containing data.
+dir <-  " " # this should be the folder containing data.
 setwd(dir)
-#survey_raw <- read.csv("/Users/Rui/Dropbox/Upenn/Stat571/Data/Survey_results_final.csv")
 survey_raw <- read.csv("Survey_results_final.csv")
-
 ```
 
 Extract only the variables of interest.
 ```{r extract_variables}
+# Extract only the 
 cols_keep <- c("WorkTimeInSeconds", "Answer.Age", "Answer.Education", "Answer.Gender", "Answer.HouseHoldIncome", "Answer.Sirius.Radio", "Answer.Wharton.Radio")
 survey <- survey_raw[cols_keep]
 colnames(survey) <- c("worktime", "age", "edu", "gender", "income", "sirius", "wharton")
 ```
-
-
 
 ```{r cleaning }
 ## cleaning the gender variable
@@ -200,6 +197,8 @@ m3 <- summary(mf3$gender)
 mf4 <- mturk[which(mturk$Age > 64),]
 m4 <- summary(mf4$gender)
 
+
+## add histograms
 ```
 
 Age group | MTurk age structure (\%) | Sample age structure (\%) | MTurk sex ratio (males/female) | Sample sex ratio (males/female) 
@@ -262,7 +261,6 @@ ggplot(dat, aes(x=x, y=y)) +
     geom_point() +    # Use hollow circles
     geom_smooth(method=lm,   # Add linear regression line
                 se=FALSE)    # Don't add shaded confidence region
-
 ```
 The estimated beta0 is 1.3945, estimated beta1 is 0.5286.
 The estimated equation is y = 1.3945 + 0.5286*x
@@ -341,10 +339,11 @@ head(paydata1)
 
 #####create a vector of the mean of each variable, beside team 
 tot.mean <- apply(X = paydata1[,-1], MARGIN = 2, FUN = mean)
-
+tot.mean <- data.frame(t(tot.mean))
+tot.mean$team <- "avg"
 #####create tot.mean row with the mean for all variables............. work in progress.................. it's not working!!!!!!! 
-team <- "tot.mean"
-tot.mean <- rbind(team, tot.mean)
+tot.mean <- rbind(paydata1, tot.mean)
+
 
 #paydata2 <- rbind(paydata1, tot.mean)
 
