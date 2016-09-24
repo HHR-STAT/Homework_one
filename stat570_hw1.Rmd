@@ -337,21 +337,17 @@ head(paydata1)
 names(paydata1) <- c("team","tot.payroll","avgwin","payroll.1998","pctwin.1998","payroll.2006","pctwin.2006","payroll.2014","pctwin.2014")
 head(paydata1)
 
-#####create a vector of the mean of each variable, beside team 
+#####create a row of averages for each variable selected across all teams, and label it "average"
 tot.mean <- apply(X = paydata1[,-1], MARGIN = 2, FUN = mean)
 tot.mean <- data.frame(t(tot.mean))
-tot.mean$team <- "avg"
-#####create tot.mean row with the mean for all variables............. work in progress.................. it's not working!!!!!!! 
-tot.mean <- rbind(paydata1, tot.mean)
+tot.mean$team <- "average" 
 
-
-#paydata2 <- rbind(paydata1, tot.mean)
-
-tot.mean <- c("tot.mean",tot.mean)
+##attach the row to the bottom of paydata1
+paydata1 <- rbind(paydata1, tot.mean)
 paydata1[,1]
 
-#####display the observations for the teams we are interested in (Boston Red Sox & Oakland A's), plus the first three teams in the dataset.  
-paydata1[c(4,20,1,2,3),]
+#####display the observations for the teams we are interested in (Boston Red Sox & Oakland A's), plus the average across all teams  
+paydata1[c(4,20,31),]
 
 #####boxplots for tot.payroll and avgwin 
 boxplot(paydata$payroll)
