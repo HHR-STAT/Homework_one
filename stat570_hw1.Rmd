@@ -29,7 +29,7 @@ library(plyr)
 library(ggplot2)
 library(sqldf)
 
-dir <-  "/Users/Rui/Downloads/Homework_one-master 3/data/" # this should be the folder containing data.
+dir <-  "/Users/Rui/Downloads/Homework_one-master/data/" # this should be the folder containing data.
 setwd(dir)
 survey_raw <- read.csv("Survey_results_final.csv")
 # Extract only the necessary variables
@@ -252,7 +252,7 @@ The above comparison clearly shows that there's great disparity between the demo
 
 ```{r, out.width = "500px"}
 # This is a locally stored graph. Please change the directory accordingly.
-knitr::include_graphics("Figs/us_sample.png")
+knitr::include_graphics("us_sample.png")
 ```
 
 #### b 2) Sample vs. mTurk population
