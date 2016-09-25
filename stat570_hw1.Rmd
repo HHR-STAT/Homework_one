@@ -24,13 +24,10 @@ Read the data into R, and extract only the variables of interest: "worktime", "a
 
 ```{r, import, echo = F}
 ## Clear the R environment, and import necessary packages. 
-rm(list=ls())
 library(plyr)
 library(ggplot2)
 library(sqldf)
 
-dir <-  "/Users/Rui/Downloads/Homework_one-master/data/" # this should be the folder containing data.
-setwd(dir)
 survey_raw <- read.csv("Survey_results_final.csv")
 # Extract only the necessary variables
 cols_keep <- c("WorkTimeInSeconds", "Answer.Age", "Answer.Education", "Answer.Gender", "Answer.HouseHoldIncome", "Answer.Sirius.Radio", "Answer.Wharton.Radio")
@@ -265,9 +262,7 @@ Ipeirotis, P. 2010. Demographics of Mechanical Turk. working paper CeDER-10-01, 
 
 ```{r sample_mturk}
 # Read in the mturk data from data folder.
-setwd(dir)
 mturk <- read.csv("mturk_surveys.csv")
-
 n_mturk <- length(mturk$Age)
 mf1 <- mturk[which(mturk$Age < 25),]
 m1 <- summary(mf1$gender)
