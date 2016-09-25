@@ -1,7 +1,7 @@
 ---
 title: "Homework 1"
-author: "Helene, Rui, Hong"
-date: "September 12, 2016"
+author: "Helene Langlamet, Rui Pei, Hong Zhang"
+date: "September 25, 2016"
 output: 
   html_document:
     toc: yes
@@ -10,7 +10,7 @@ output:
 
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.width=4, fig.height=3.5, fig.path='Figs/',
-                      echo=TRUE, warning=FALSE, message=FALSE)
+                      echo=FALSE, warning=FALSE, message=FALSE)
 options(scipen=1, digits=2)
 ```
 
@@ -18,10 +18,10 @@ options(scipen=1, digits=2)
 
 ### Question 2: The Radio Survey Dataset
 
-#### a) Import and clean the data
+#### 2.a.1 Import and clean the data
 
+Read the data into R, and extract only the variables of interest: "worktime", "age", "edu", "gender", "income", "sirius", "wharton".
 
- Read the data into R 
 ```{r, import, echo = F}
 ## Clear the R environment, and import necessary packages. 
 rm(list=ls())
@@ -29,41 +29,37 @@ library(plyr)
 library(ggplot2)
 library(sqldf)
 
-dir <-  " " # this should be the folder containing data.
+dir <-  "/Users/Rui/Downloads/Homework_one-master 3/data/" # this should be the folder containing data.
 setwd(dir)
 survey_raw <- read.csv("Survey_results_final.csv")
-```
-
-Extract only the variables of interest.
-```{r extract_variables}
-# Extract only the 
+# Extract only the necessary variables
 cols_keep <- c("WorkTimeInSeconds", "Answer.Age", "Answer.Education", "Answer.Gender", "Answer.HouseHoldIncome", "Answer.Sirius.Radio", "Answer.Wharton.Radio")
 survey <- survey_raw[cols_keep]
 colnames(survey) <- c("worktime", "age", "edu", "gender", "income", "sirius", "wharton")
 ```
 
-```{r cleaning }
-## cleaning the gender variable
-print("Answers given to Gender.")
-levels(survey$gender)
+- Survey responses to question on gender. 
+
+```{r cleaning1}
+# view gender variable
+print(levels(survey$gender))
 survey <- survey[-c(which(survey$gender == "")),]
-## cleaning the age variable
-print("Answers given to Age.")
-levels(survey$age)
-survey <- survey[-which(survey$age == ""),]
-survey <- survey[-which(survey$age == "female"),]
-survey$age[which(survey$age == "223")] <- "23"
-survey$age[which(survey$age == "27`")] <- "27"
-survey$age[which(survey$age == "4")] <- "40"  # not sure if should delete this data point
-survey$age[which(survey$age == "Eighteen (18)")] <- "18"
-survey$age <- as.numeric(levels(survey$age))[survey$age]
-## cleaning up the education variable
-print("Ansers given to education")
-unique(survey$edu)
-survey <- survey[-which(survey$edu == "select one"),]
 ```
 
-Clean the data
+- Survey responses to question on age.
+
+```{r cleaning2}
+# view age variable
+print(levels(survey$age))
+```
+
+- Survey responses to question on education.
+```{r cleaning3}
+#view education variable
+print(unique(survey$edu))
+```
+
+To clean the data, we did the following:
 
 * Remove data points with gender ""
 
@@ -73,12 +69,26 @@ Clean the data
 
 * Remove data points with education = "select one"
 
+```{r cleaning4}
+# removing participant data with missing values.
+survey <- survey[-which(survey$age == ""),]
+survey <- survey[-which(survey$age == "female"),]
+survey$age[which(survey$age == "223")] <- "23"
+survey$age[which(survey$age == "27`")] <- "27"
+survey$age[which(survey$age == "4")] <- "40"  # not sure if should delete this data point
+survey$age[which(survey$age == "Eighteen (18)")] <- "18"
+survey$age <- as.numeric(levels(survey$age))[survey$age]
+survey <- survey[-which(survey$edu == "select one"),]
+```
 
-#### b) summarize all the variables collected 
+#### 2.a.2 summarize all the variables collected 
 
 **Gender **
 
-```{r summarize_gender}
+58% of the sample are male, and 42% of the sample are female.
+
+```{r summarize_gender, fig.height = 3, fig.width=3}
+# plot pie chart indicating male-female ratio
 a <- summary(survey$gender)[2:3]
 gender <- c("female", "male")
 number <- c(a[1]/(a[1] + a[2]),a[2]/(a[1] + a[2]))
@@ -96,45 +106,90 @@ p <- p +
 print(p)
 ```
 
-58% of the sample is male. 
-
 **Work time **
+
+Variable "work time" inicates the number of minutes participants spent completing the questionnaire. 
+
+__Summary of work time:__
+
 ```{r summarize_worktime}
+# summarize worktime variable
 summary(survey$worktime)
-f1 <- ggplot(survey, aes(worktime, fill = gender)) + 
+```
+
+Participants on average spent 21 minutes completing the questionnaire. The fastest participant only used 8 minutes, and the slowliest used 108 minutes. 
+
+The distribution of work time is as follows:
+
+```{r summarize_worktime2, fig.height = 3, fig.width=3}
+#plot the distribution of worktime variable
+f1 <- ggplot(survey, aes(worktime)) + 
   geom_histogram(bins = 60) +
   xlab("Work Time (s)") + ylab("Count") + 
   ggtitle("Distribution of work time")
 f1
 ```
+
 **Age **
+
+__summary of age:__
 ```{r summarize_age}
-summary(survey$age)
-sd(survey$age)
-f2 <- ggplot(survey, aes(age, fill = gender)) + 
+# summarize age
+a <- summary(survey$age)
+print(a)
+b <- sd(survey$age)
+```
+
+Sample data suggest that the porportion of young people filling out our survey is significant larger than older people. 59.4% of our sample is between 18 and 30 years old. The mean age of our sample is `r a[4]` with a standard deviation of `r b`. 
+
+The distribution of age is as follows:
+
+```{r summarize_age2, fig.height = 3, fig.width=3}
+# plot the distribution of variable age
+f2 <- ggplot(survey, aes(age)) + 
   geom_histogram(bins = 30) +
   xlab("Age") + ylab("Count") + 
   ggtitle("Distribution of participant age")
 f2
 ```
+
 **Education **
+
+Most of participants (~77%) reported receiving either "Some college, no diploma; or associate's degree", or Bachelor's degree. Male and female participants demonstrate similar distribution of education. 
+
 ```{r summarize_education}
-survey$edu <- revalue(survey$edu, c("Bachelor’s degree or other 4-year degree" = "Bachelor", 
-                      "Graduate or professional degree" = "Graduate",
-                      "High school graduate (or equivalent)" = "High school",
-                      "Less than 12 years; no high school diploma" = "<12",
-                      "Other" = "Other",
-                      "Some college, no diploma; or Associate’s degree" = "Some college",
-                      "select one" = "select one"   
+# revalue the factor variable "education"
+survey$edu <- revalue(survey$edu, c("Less than 12 years; no high school diploma" = "<12",
+                                    "High school graduate (or equivalent)" = "High school",
+                                    "Some college, no diploma; or Associate’s degree" = "Some college",
+                                    "Bachelor’s degree or other 4-year degree" = "Bachelor", 
+                                    "Graduate or professional degree" = "Graduate",
+                                    "Other" = "Other",
+                                    "select one" = "select one"   
                       ))
-summary(survey$edu)
-f <- ggplot(survey, aes(x = edu, fill = gender)) + geom_bar(position = "dodge")
+summary_edu <- summary(survey$edu)
+f <- ggplot(survey, aes(x = edu, fill = gender)) + geom_bar(position = "dodge") + ggtitle("Distribution of participant education by gender")
+```
+
+__Number (and %) of participants in education levels__
+
+< 12 years    |   High School  |  Some College  |   Bachelor     |   Graduate     | Other 
+------------- | -------------  | -------------- | -------------  | -------------  | ------------- 
+`r summary_edu[4]` (`r summary_edu[4]/17.38`%)  | `r summary_edu[3]` (`r summary_edu[3]/17.38`%)| `r summary_edu[1]` (`r summary_edu[1]/17.38`%) | `r summary_edu[7]` (`r summary_edu[7]/17.38`%) | `r summary_edu[2]` (`r summary_edu[2]/17.38`%) | `r summary_edu[5]` (`r summary_edu[5]/17.38`%) 
+
+```{r summarize_education2, fig.height=3, fig.width= 5}
 print(f)
 ```
 
 **Income **
+
+85% of participant's income fall in range $15,000 - $150,000. 2.5% participants' annual income is above $150,000, and 11.8% participants' annual income is below $15,000.
+
+__Summary of participant income:__
+
 ```{r summarize_income}
 survey$income_mean <- NA
+# replace the factor variable "income" with mean
 survey$income_mean[which(survey$income == "$15,000 - $30,000")] <- mean(c(15000, 30000))
 survey$income_mean[which(survey$income == "$30,000 - $50,000")] <- mean(c(30000, 50000))
 survey$income_mean[which(survey$income == "$50,000 - $75,000")] <- mean(c(50000, 75000))
@@ -142,23 +197,35 @@ survey$income_mean[which(survey$income == "$75,000 - $150,000")] <- mean(c(75000
 survey$income_mean[which(survey$income == "Above $150,000")] <- (150000)
 survey$income_mean[which(survey$income == "Less than $15,000")] <- (15000)
 survey$income_mean <- as.numeric(survey$income_mean) 
-table(survey$income_mean)
-
-ggplot(survey,aes(income_mean, fill = gender)) + 
-  geom_bar(position = "dodge")
+summary(survey$income)
 ```
 
+Below is a histograph showing the distribution of participant income by gender, which indicates that more males than females receive higher income. 
+
+```{r summarize_income2, fig.height=3, fig.width=5}
+# plot distribution of income variable
+ggplot(survey,aes(income_mean, fill = gender)) + 
+  geom_bar(position = "dodge") + ggtitle("Distribution of participant income by gender")
+```
 
 ### b) Sample properties
 #### b.1) Sample vs. U.S. population
-Does this sample appear to be a random sample from the general population of the U. S.? IF so we can get our estimate easily. (Utilize your control variables, compare them to sources such as the CIA world factbook).
+
+__Question:__
+_Does this sample appear to be a random sample from the general population of the U. S.? IF so we can get our estimate easily. (Utilize your control variables, compare them to sources such as the CIA world factbook)._
+
+We pulled U.S. population demographic data from _CIA World Fact Book_ (https://www.cia.gov/library/publications/the-world-factbook/geos/us.html), and compared U.S. population demographic with sample demographic in the following table:
+
+
 ```{r sample_US}
-n <- length(survey$age) # total sample size
+n <- length(survey$age) # total sample size of survey respondents
+# calcuate # of survey respondents in each age group
 p1 <- length(which(survey$age <25))
 p2 <- length(which(survey$age < 55)) - p1
 p3 <- length(which(survey$age < 65)) - p1 - p2
 p4 <- length(which(survey$age > 64))
 
+# calculate age percentage and gender percentage
 df1 <- survey[which(survey$age < 25),]
 d1 <- summary(df1$gender)
 df2 <- survey[setdiff(which(survey$age < 55), which(survey$age < 25)),]
@@ -171,19 +238,33 @@ d4 <- summary(df4$gender)
 ```
 
 
-Age group | CIA age structure (\%) | Sample age structure (\%) | CIA sex ratio (males/female) | Sample sex ratio (males/female) 
+
+Age group | CIA age structure (\%) | Sample age structure (\%) | CIA female % | Sample female %
 ------------- | -------------  | -------------  | -------------  | ------------- 
-0 - 14 years      | 18.99    | 0           | 1.04            | NA     
-15 - 24 years     | 13.64   |    `r 100 * p1/n`     | 1.05      | `r  d1[3]/d1[2]`                    
-25 - 54 years     | 39.76   |  `r 100 *p2/n`    | 1          |   `r d2[3]/d2[2]`
-55 - 64 years     | 12.73     | `r 100 *p3/n`   | 0.93     |     `r d3[3]/d3[2]`                          
-65 years and over | 14.88  |  `r 100 *p4/n` | 0.79            |   `r d4[3]/d4[2]`                        
+0 - 14 years      | 18.99    | 0           | `r 1/2.04*100`            | NA     
+15 - 24 years     | 13.64   |    `r 100 * p1/n`     | `r 1/2.05*100`      | `r  100*d1[2]/(d1[3] + d1[2])`                    
+25 - 54 years     | 39.76   |  `r 100 *p2/n`    | 0.50     |   `r 100*d2[2]/(d2[3] + d2[2])`
+55 - 64 years     | 12.73     | `r 100 *p3/n`   | `r 1/1.93*100`     | `r 100*d3[2]/(d1[3] + d1[2])`                          
+65 years and over | 14.88  |  `r 100 *p4/n` |`r 1/1.79*100`     | `r 100*d4[2]/(d1[3] + d1[2])`                   
+
+
+The above comparison clearly shows that there's great disparity between the demographic distribution of U.S. population and that of sample. More specifically, children and teenagers ( between 0 - 14 years) as well as senior people (> 65) make up 33.87% of U.S. population but are not represented in our sample. Adults between 25 and 64 years are over represented in our sample. This disparity is also demonstrated in the histograph below.
+
+```{r, out.width = "500px"}
+# This is a locally stored graph. Please change the directory accordingly.
+knitr::include_graphics("Figs/us_sample.png")
+```
 
 #### b 2) Sample vs. mTurk population
-Does this appear to be a random sample from mTurk population?
 
-We downloaded demographic data of 5000 most recent mTurk surveys from https://mturk-surveys.appspot.com/, and compared this demographic information with our sample. 
+__Question: Does this appear to be a random sample from mTurk population?__
+
+Demographic data of the Amazon Mechanical Turk population come from Panos Ipeirotis at New York University, who used survey to collect the demogrphic information of participants on Amazon Turk. Data were pulled through API from their website https://mturk-surveys.appspot.com/. We pulled 5000 random surveys and compared this demographic information with our sample. For more information on Panos Ipeirotis's study on Amazon Turk demographics, please refer to 
+
+Ipeirotis, P. 2010. Demographics of Mechanical Turk. working paper CeDER-10-01, New York University, Stern School of Business. Available at http://hdl.handle.net/2451/29585.
+
 ```{r sample_mturk}
+# Read in the mturk data from data folder.
 setwd(dir)
 mturk <- read.csv("mturk_surveys.csv")
 
@@ -197,8 +278,16 @@ m3 <- summary(mf3$gender)
 mf4 <- mturk[which(mturk$Age > 64),]
 m4 <- summary(mf4$gender)
 
+## add histogram
+mturk_his <- data.frame(mturk$Age)
+colnames(mturk_his) <- "age"
+mturk_his$type <- "mturk"
+survey_his <- data.frame(survey$age)
+colnames(survey_his) <- "age"
+survey_his$type <- "sample"
 
-## add histograms
+total_his <- rbind(mturk_his, survey_his)
+f2 <- ggplot(data = total_his) + geom_density(aes(x = age, color = type, fill = type), alpha = .2)
 ```
 
 Age group | MTurk age structure (\%) | Sample age structure (\%) | MTurk sex ratio (males/female) | Sample sex ratio (males/female) 
@@ -208,11 +297,17 @@ Age group | MTurk age structure (\%) | Sample age structure (\%) | MTurk sex rat
 55 - 64 years     | `r 100*length(mf3$Age)/n_mturk`    |  `r 100 * p3/n` |`r  m3[2]/m3[1]`    |     `r d3[3]/d3[2]`                          
 65 years and over |  `r 100*length(mf4$Age)/n_mturk` |  `r 100 * p4/n` | `r  m4[2]/m4[1]`   |   `r d4[3]/d4[2]`  
 
+Also, we estimated sample age distribution for the two groups.
 
-This table suggests that our sample is a fairly good representation of Amazon Mechanical Turk U.S. population.
+```{r sample_mturk2, fig.height=3, fig.width=5}
+print(f2)
+```
+
+The table and figure suggest that our sample is a fairly good representation of Amazon Mechanical Turk U.S. population. 
 
 #### b  3) Estimating U.S. Wharton radio listeners.
-Assume that the proportion of Wharton listeners vs. that of Sirius listeners remains the same in the general population as it is in the MTURK population. Use the data to provide an estimate of the number of Wharton listeners in the U. S. In order to make this estimate do you need to break down the proportion of Wharton to Sirius by age? Provide some graphical or numerical evidence to support your reasoning.
+
+__Question: Assume that the proportion of Wharton listeners vs. that of Sirius listeners remains the same in the general population as it is in the MTURK population. Use the data to provide an estimate of the number of Wharton listeners in the U. S. In order to make this estimate do you need to break down the proportion of Wharton to Sirius by age? Provide some graphical or numerical evidence to support your reasoning.__
 
 We break down the proportion of Wharton to Sirius listeners by age.  **Here we are assuming that sample represents MTurk population **
 
@@ -230,10 +325,6 @@ $$ p = 13.64\% \times 0.06 + 39.76\% \times 0.05 + 12.73\% \times 0.03 + 14.88\%
 p = `r 0.1364*0.06 + 0.3976*0.05 + 0.1273*0.03 + 0.1488*0.14`
 
 Number of wharton listeners =  $p \times 51.6 =  2.6 million$ 
-
-
-
-
 
 
 ### Question 3 
