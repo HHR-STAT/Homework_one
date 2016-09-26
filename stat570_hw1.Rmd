@@ -414,7 +414,7 @@ The distribution of beta1 seems to center around `r mean(beta1)`, which is prett
 __Display your confidence intervals graphically. [Optional: Is there any noticeable relation
 between the length of the interval and whether or not it covers the true β1 ? – You may want to collect more than 100 samples to investigate this.]__
 
-There are 97 times that my 95% CI convered the true beta1 in this simulation.
+There are about 97 times that my 95% CI convered the true beta1 in this simulation.
 The confidence intervals are plotted in the figure below. This part is also integrated into a function like above for the sake of reproduceability.
 
 ```{r}
@@ -462,16 +462,25 @@ With this set of functions, we can try multiple user-defined simulations, and pl
 ```{r}
 numsim = 100
 simsize = seq(numsim)
-result = vector(mode="numeric",length=numsim)
+result = data.frame(matrix(data=NA, ncol=2,nrow=100))
 for (i in 1:numsim){
 sim = simlm(10*i,100,1,1.2,2)
 outs = ci_out(sim,1.2)
-result[i] = outs
+result[i,1] = outs[1]
+result[i,2] = outs[2]
 }
-plot(simsize, result, col="blue", cex=1, xlab="Sample size/10", ylab="Percentage of CI's that fail to capture the true mean")
-```
+plot(simsize, result[,2], col="blue", cex=1, xlab="Sample size/10", ylab="Percentage of CI's that fail to capture the true mean")
 
-The result appears to be pretty random. Therefore there isn't a relation between sample size and whether the CI derived from the sample could capture true mean.
+result = result[order(result[,2]),]
+plot(result[,1], result[,2], col="blue", cex=1, xlab="Length of CI", ylab="Percentage of CI's that fail to capture the true mean")
+abline(lm(result[,2]~result[,1]), col="red")
+
+fitci = lm(result[,2]~result[,1])
+summary(fitci)
+
+```
+The result appears to be pretty random. Therefore there isn't a relation between sample size and whether the CI derived from the sample could capture true mean. And the second plot shows that there is essentially no correlation between the length of CI and the percentage of CI's that fails to capture the true mean. This is also confirmed by the regression model, whose p-value is about 0.5.
+
 
 
 
@@ -604,72 +613,79 @@ abline(myfit0, col="red", lwd=4)
  
 #### iii) Now use the aggregated information, and use regression to analyze the relation between total payroll and overall winning percentage. Run appropriate model(s) to answer the following questions.
 ##### a) In this analysis do the Boston Red Sox perform reasonably well given their total payroll? [Use a 95% prediction interval.]
-
+```{r}
   attach(paydata1)
   
   new <- data.frame(tot.payroll=c(1.972359)) #Boston Red Sox's total payroll 
   CImean <- predict(myfit0, new, interval="prediction", se.fit=TRUE)  
   CImean
-
-###### Answer: The Boston Red Sox, with an average of 55% of games won between 1998 and 2014, falls within the confidence interval in terms of their performance given their payroll.
+```
+The Boston Red Sox, with an average of 55% of games won between 1998 and 2014, falls within the confidence interval in terms of their performance given their payroll.
 
 ##### b) In view of their winning percentage, how much payroll should the Oakland A’s have spent? [Use a 95% prediction interval.]
-
+```{r}
   myfit1 <- lm(tot.payroll~avgwin, data=paydata1)
   summary(myfit1)
 
   new2 <- data.frame(avgwin=c(0.5445067)) #Oakland A's average of games won between 1998 and 2014
     CImean <- predict(myfit1, new2, interval="prediction", se.fit=TRUE)  
     CImean
+```
+Using the regression model in myfit1, we would have predicted that a team winning 54% of all games between 1998 and 2014 should have a total payroll over that time between 0.95 and 2.27 billion dollars. Given this result, we can say that the Oakland A's performed beyond expectation given their budget. 
 
-###### Answer: Using the regression model in myfit1, we would have predicted that a team winning 54% of all games between 1998 and 2014 should have a total payroll over that time between 0.95 and 2.27 billion dollars. Given this result, we can say that the Oakland A's performed beyond expectation given their budget. 
-
-##### iv) What is the best model you could build on the basis of this data to capture the important factors affecting winning percentage in 2014 and predict that percentage for 2015? 
+#### iv) What is the best model you could build on the basis of this data to capture the important factors affecting winning percentage in 2014 and predict that percentage for 2015? 
 ##### Describe the process of your analysis. What criterion are you using? Report your findings.
 
-##### The best we can do to in order to predict MLB performance in 2015 is to capture the factors influencing performance in 2014 as well as possible. 
+The best we can do to in order to predict MLB performance in 2015 is to capture the factors influencing performance in 2014 as well as possible. 
 
-##### We begin by examining the correlation between winning percentage in 2014, and the other variables in the dataset. It seems like the relationship between performance in 2014 and payroll goes less far back in time than the relationship between present and past performance (though before 2012, that correlation becomes negative).
+We begin by examining the correlation between winning percentage in 2014, and the other variables in the dataset. It seems like the relationship between performance in 2014 and payroll goes less far back in time than the relationship between present and past performance (though before 2012, that correlation becomes negative).
+```{r}
   t(cor(paydata$X2014.pct, paydata[, c(4:20, 38:54)]))
+```
 
-##### Based on this finding, create a reduced dataset from paydata that only includes winning percentages in 2014, and the variables we want to use to predict it, winning percentages from 1998 to 2013 and payroll for 2013 and 2014.  
-
+Based on this finding, create a reduced dataset from paydata that only includes winning percentages in 2014, and the variables we want to use to predict it, winning percentages from 1998 to 2013 and payroll for 2013 and 2014.  
+```{r}
   paydata2 <- paydata[, c(19:20, 38:54) ]
   names(paydata2)
-
+```
 ##### Do an exhaustive search for the best fit model, using the variables in paydata2:
+```{r}
   fit.exhaust <- regsubsets(X2014.pct ~., paydata2, method="exhaustive")
   f.x <- summary(fit.exhaust)
   names(f.x)
-
-##### Plot Cp and BIC by number of predictors, to get a sense of what the optimal size of our model should be. Both Cp and BIC point to a model with 5 variables as the best model.  
+```
+##### Plot Cp and BIC by number of predictors, to get a sense of what the optimal size of our model should be. Both Cp and BIC point to a model with 5 variables as the best model.
+```{r}
   par(mfrow=c(2,1))
   plot(f.x$cp, xlab="Number of predictors", 
      ylab="cp", col="red", type="p", pch=16)
   plot(f.x$bic, xlab="Number of predictors", 
      ylab="bic", col="blue", type="p", pch=16)
-
+```
 ##### Locate the optimal model size using Cp and BIC computationally (assessment that 5 is the optimal size is confirmed). 
+```{r}
   best.size <- which.min(f.x$cp) 
   best.size
   best.bic.size <- which.min(f.x$bic)
   best.bic.size
-
+```
 ##### Find out the variables in the best fit model: 
+```{r}
   fit.exhaust.var <- f.x$which
   fit.exhaust.var[5,]
-
-###### We find that the predictive variables for performance in 2014 are: performance in 2012, 2010, and, interestingly, 1998 to 2000. 
+```
+We find that the predictive variables for performance in 2014 are: performance in 2012, 2010, and, interestingly, 1998 to 2000. 
   
-##### Pull out the final model:
+*Pull out the final model:*
+```{r}
   fit.exhaust.5 <- lm(paydata2$X2014.pct ~., paydata2[fit.exhaust.var[5,]])  
   summary(fit.exhaust.5)  
+```
+*Note 1*: In this model, performance in 1999, 2010 and 2012 are significant predictors at >0.001, and performance in 1998 is significant at 0.05 
 
-###### Note 1: In this model, performance in 1999, 2010 and 2012 are significant predictors at >0.001, and performance in 1998 is significant at 0.05 
+*Note 2*: For some reason, when I ask R to fit this model, it shows the coefficient for payroll in 2013, even though it did not identify this predictor in the 5 variable model. I cannot figure why, nor whether this is affecting the coefficients for the other predictors or not (when I ask it to fit a one predictor model, it includes performance in 2012, but still shows the coefficient for payroll in 2013.)
 
-###### Note 2: For some reason, when I ask R to fit this model, it shows the coefficient for payroll in 2013, even though it did not identify this predictor in the 5 variable model. I cannot figure why, nor whether this is affecting the coefficients for the other predictors or not (when I ask it to fit a one predictor model, it includes performance in 2012, but still shows the coefficient for payroll in 2013.)
-
-###### Answer: We believe the regression model X2014.pct ~ X1998.pct, X1999.pct, X2000.pct, X2010.pct, X2012.pct should be the best predictor of MLB performance in 2015. A few things that are noteworthy about this model are that no information about payroll seem to have made it into the best fit model, and that the teams' performance more than a decade ago seems to be more predictive of present performance than more recent years. The latter raises some questions as to whether we are witnessing some kind of regression to the mean, which might undermine our confidence in those predictors' ability to hold up when predicting future, not just present, performance.   
+We believe the regression model X2014.pct ~ X1998.pct, X1999.pct, X2000.pct, X2010.pct, X2012.pct should be the best predictor of MLB performance in 2015. A few things that are noteworthy about this model are that no information about payroll seem to have made it into the best fit model, and that the teams' performance more than a decade ago seems to be more predictive of present performance than more recent years. The latter raises some questions as to whether we are witnessing some kind of regression to the mean, which might undermine our confidence in those predictors' ability to hold up when predicting future, not just present, performance.   
 
 
 
