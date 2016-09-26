@@ -457,65 +457,64 @@ The result appears to be pretty random. Therefore there isn't a relation between
 
 ### Question 4 : Major League Baseball
 
-####i) Summarize the data by providing suitable summary statistics and graphs. Write a brief report for your findings.
+library(leaps)
 
-#####Load and examine dataset:
-```{r 4.a.1}
-setwd(dir)
+#### i) Summarize the data by providing suitable summary statistics and graphs. Write a brief report for your findings.
+
+##### Load and examine dataset:
 paydata <- read.csv("MLPayData_Total.csv")
 names(paydata)
 
-#####select the variables we are interested in: team names, team total payroll from 1998 to 2014 (in billions), fraction of games won from 1998 to 2014, and payroll (in millions) and fraction of games won for the years we want to examine:  
+##### select the variables we are interested in: team names, team total payroll from 1998 to 2014 (in billions), fraction of games won from 1998 to 2014, and payroll (in millions) and fraction of games won for the years we want to examine:  
 paydata1 <- paydata[,c(3,1:2,4,54,12,46,20,38)]
 head(paydata1)
 
-#####rename the variables to more intelligible names: 
+##### rename the variables to more intelligible names: 
 names(paydata1) <- c("team","tot.payroll","avgwin","payroll.1998","pctwin.1998","payroll.2006","pctwin.2006","payroll.2014","pctwin.2014")
 head(paydata1)
 
-#####create a row of averages for each variable selected across all teams, and label it "average"
+##### create a row of averages for each variable selected across all teams, and label it "average"
 tot.mean <- apply(X = paydata1[,-1], MARGIN = 2, FUN = mean)
 tot.mean <- data.frame(t(tot.mean))
 tot.mean$team <- "average" 
 
-##attach the row to the bottom of paydata1
+##### attach the row to the bottom of paydata1
 paydata1 <- rbind(paydata1, tot.mean)
 paydata1[,1]
 
-#####display the observations for the teams we are interested in (Boston Red Sox & Oakland A's), plus the average across all teams  
+##### display the observations for the teams we are interested in (Boston Red Sox & Oakland A's), plus the average across all teams  
 paydata1[c(4,20,31),]
 
-#####boxplots for tot.payroll and avgwin 
-boxplot(paydata$payroll)
-######WORK IN PROGRESS......trying to put a horizontal line for A's and Red Sox 
-```
-  abline(
-    h = 0.5487172,
-    col = "lightblue",
-    lwd = 2 
-  )
-```{r 4}
-######END OF WORK IN PROGRESS....... 
-boxplot(paydata$avgwin)
+##### boxplots for tot.payroll and avgwin 
+boxplot(paydata$payroll,
+          ylab = "payroll (in billions)",
+          main = "Distribution of MLB payrolls between 1998 and 2014"
+boxplot(paydata$avgwin,
+          ylab = "fraction of all games won", 
+          main = "MLB teams average winning between 1998 and 2014")
 
-#####scatterplot of average by total payroll from 1998 to 2014 
+##### scatterplot of average by total payroll from 1998 to 2014
 plot(paydata$payroll, paydata$avgwin, 
        pch  = 16, 
-       cex  = 1,
+       cex  = 1.2,
        col  = "blue",
        xlab = "Payroll", 
        ylab = "Win Percentage",
        main = "MLB Teams's Overall Win Percentage vs. Payroll")
 
-######WORK IN PROGRESS: identify the Oakland A's and Boston Red Sox in the scatterplot. 
-```
-identify(paydata$payroll, paydata$avgwin, labels=paydata$team, plot=TRUE) 
-
-####ii) For a given year, is payroll a significant variable to predict the winning percentage of that year? Choose a year and run a regression to examine this. You may try this for a few different years. Explain your results.
-
-  myfit0 <- lm(avgwin~tot.payroll, data=paydata1)
+##### Add a regression line 
+myfit0 <- lm(avgwin~tot.payroll, data=paydata1)
   summary(myfit0)
   
+    abline(myfit0, col="red", lwd=4)
+  
+##### Identify the Oakland A's and Boston Red Sox in the scatterplot. 
+identify(paydata1$tot.payroll, paydata1$avgwin, labels=paydata1$team) 
+
+#### ii) For a given year, is payroll a significant variable to predict the winning percentage of that year? Choose a year and run a regression to examine this. You may try this for a few different years. Explain your results.
+
+##### Run a regression of the relationship between payroll and win percentage for 1998, 2006, and 2014
+
   myfit1998 <- lm(pctwin.1998~payroll.1998, data=paydata1)  
   summary(myfit1998)
   
@@ -524,19 +523,9 @@ identify(paydata$payroll, paydata$avgwin, labels=paydata$team, plot=TRUE)
   
   myfit2014 <- lm(pctwin.2014~payroll.2014, data=paydata1)  
   summary(myfit2014)
-  
+
+##### Plot the regression line for 1998, 2006, 2014, and the average for all 16 years as a point of comparison 
   par(mfrow = c(2,2))
-  
-    plot(paydata1$tot.payroll, paydata$avgwin, 
-       pch  = 16, 
-       cex  = 1.2,
-       col  = "blue",
-       xlab = "Payroll", 
-       ylab = "Win Percentage",
-       xlim = c(0, 2.5),
-       ylim = c(0.4, 0.7),
-       main = "MLB Teams's Overall Win Percentage vs. Payroll")
-    abline(myfit0, col="red", lwd=4)
     
     plot(paydata1$payroll.1998, paydata1$pctwin.1998, 
        pch  = 16, 
@@ -570,9 +559,18 @@ identify(paydata$payroll, paydata$avgwin, labels=paydata$team, plot=TRUE)
        ylim = c(0.4, 0.7),
        main = "MLB Teams's Win Percentage vs. Payroll in 2014")
     abline(myfit2014, col="red", lwd=4) 
+    
+    plot(paydata$payroll, paydata$avgwin, 
+       pch  = 16, 
+       cex  = 1.2,
+       col  = "blue",
+       xlab = "Payroll", 
+       ylab = "Win Percentage",
+       main = "MLB Teams's Overall Win Percentage vs. Payroll")
+    abline(myfit0, col="red", lwd=4)
   
-####iii) Now use the aggregated information, and use regression to analyze the relation between total payroll and overall winning percentage. Run appropriate model(s) to answer the following questions.
-#####a) In this analysis do the Boston Red Sox perform reasonably well given their total payroll? [Use a 95% prediction interval.]
+#### iii) Now use the aggregated information, and use regression to analyze the relation between total payroll and overall winning percentage. Run appropriate model(s) to answer the following questions.
+##### a) In this analysis do the Boston Red Sox perform reasonably well given their total payroll? [Use a 95% prediction interval.]
 
   attach(paydata1)
   
@@ -580,9 +578,9 @@ identify(paydata$payroll, paydata$avgwin, labels=paydata$team, plot=TRUE)
   CImean <- predict(myfit0, new, interval="prediction", se.fit=TRUE)  
   CImean
 
-######Answer: The Boston Red Sox, with an average of 55% of games won between 1998 and 2014, falls within the confidence interval in terms of their performance given their payroll.
+###### Answer: The Boston Red Sox, with an average of 55% of games won between 1998 and 2014, falls within the confidence interval in terms of their performance given their payroll.
 
-#####b) In view of their winning percentage, how much payroll should the Oakland A’s have spent? [Use a 95% prediction interval.]
+##### b) In view of their winning percentage, how much payroll should the Oakland A’s have spent? [Use a 95% prediction interval.]
 
   myfit1 <- lm(tot.payroll~avgwin, data=paydata1)
   summary(myfit1)
@@ -591,22 +589,54 @@ identify(paydata$payroll, paydata$avgwin, labels=paydata$team, plot=TRUE)
     CImean <- predict(myfit1, new2, interval="prediction", se.fit=TRUE)  
     CImean
 
-######Answer: Using the regression model in myfit1, we would have predicted that a team winning 54% of all games between 1998 and 2014 should have a total payroll over that time between 0.95 and 2.27 billion dollars. Given this result, we can say that the Oakland A's performed beyond expectation for their budget. 
+###### Answer: Using the regression model in myfit1, we would have predicted that a team winning 54% of all games between 1998 and 2014 should have a total payroll over that time between 0.95 and 2.27 billion dollars. Given this result, we can say that the Oakland A's performed beyond expectation given their budget. 
 
-#####iv) What is the best model you could build on the basis of this data to capture the important factors affecting winning percentage in 2014 and predict that percentage for 2015? 
-#####Describe the process of your analysis. What criterion are you using? Report your findings.
+##### iv) What is the best model you could build on the basis of this data to capture the important factors affecting winning percentage in 2014 and predict that percentage for 2015? 
+##### Describe the process of your analysis. What criterion are you using? Report your findings.
 
-  myfit2014 <- lm(pctwin.2014~payroll.2014, data=paydata1)  
-  summary(myfit2014)
+##### The best we can do to in order to predict MLB performance in 2015 is to capture the factors influencing performance in 2014 as well as possible. 
 
-  attach(paydata1)
+##### We begin by examining the correlation between winning percentage in 2014, and the other variables in the dataset. It seems like the relationship between performance in 2014 and payroll goes less far back in time than the relationship between present and past performance (though before 2012, that correlation becomes negative).
+  t(cor(paydata$X2014.pct, paydata[, c(4:20, 38:54)]))
+
+##### Based on this finding, create a reduced dataset from paydata that only includes winning percentages in 2014, and the variables we want to use to predict it, winning percentages from 1998 to 2013 and payroll for 2013 and 2014.  
+
+  paydata2 <- paydata[, c(19:20, 38:54) ]
+  names(paydata2)
+
+##### Do an exhaustive search for the best fit model, using the variables in paydata2:
+  fit.exhaust <- regsubsets(X2014.pct ~., paydata2, method="exhaustive")
+  f.x <- summary(fit.exhaust)
+  names(f.x)
+
+##### Plot Cp and BIC by number of predictors, to get a sense of what the optimal size of our model should be. Both Cp and BIC point to a model with 5 variables as the best model.  
+  par(mfrow=c(2,1))
+  plot(f.x$cp, xlab="Number of predictors", 
+     ylab="cp", col="red", type="p", pch=16)
+  plot(f.x$bic, xlab="Number of predictors", 
+     ylab="bic", col="blue", type="p", pch=16)
+
+##### Locate the optimal model size using Cp and BIC computationally (assessment that 5 is the optimal size is confirmed). 
+  best.size <- which.min(f.x$cp) 
+  best.size
+  best.bic.size <- which.min(f.x$bic)
+  best.bic.size
+
+##### Find out the variables in the best fit model: 
+  fit.exhaust.var <- f.x$which
+  fit.exhaust.var[5,]
+
+###### We find that the predictive variables for performance in 2014 are: performance in 2012, 2010, and, interestingly, 1998 to 2000. 
   
-  new3 <- data.frame(payroll.2014=c(162.8174)) #Boston Red Sox's payroll for 2014
-  CImean <- predict(myfit2014, new3, interval="prediction", se.fit=TRUE) #Prediction of Boston Red Sox's performance in 2015 based on the myfit2014 model, and its payroll in 2014 
-  CImean
-  
-######I really don't know whether this is the right way. Please let me know if you have a better idea! 
+##### Pull out the final model:
+  fit.exhaust.5 <- lm(paydata2$X2014.pct ~., paydata2[fit.exhaust.var[5,]])  
+  summary(fit.exhaust.5)  
 
+###### Note 1: In this model, performance in 1999, 2010 and 2012 are significant predictors at >0.001, and performance in 1998 is significant at 0.05 
+
+###### Note 2: For some reason, when I ask R to fit this model, it shows the coefficient for payroll in 2013, even though it did not identify this predictor in the 5 variable model. I cannot figure why, nor whether this is affecting the coefficients for the other predictors or not (when I ask it to fit a one predictor model, it includes performance in 2012, but still shows the coefficient for payroll in 2013.)
+
+###### Answer: We believe the regression model X2014.pct ~ X1998.pct, X1999.pct, X2000.pct, X2010.pct, X2012.pct should be the best predictor of MLB performance in 2015. A few things that are noteworthy about this model are that no information about payroll seem to have made it into the best fit model, and that the teams' performance more than a decade ago seems to be more predictive of present performance than more recent years. The latter raises some questions as to whether we are witnessing some kind of regression to the mean, which might undermine our confidence in those predictors' ability to hold up when predicting future, not just present, performance.   
 
 
 
