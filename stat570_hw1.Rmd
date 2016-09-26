@@ -456,39 +456,48 @@ The result appears to be pretty random. Therefore there isn't a relation between
 
 
 ### Question 4 : Major League Baseball
-
+```{r 4.1import}
 library(leaps)
+paydata <- read.csv("MLPayData_Total.csv")
+```
 
 #### i) Summarize the data by providing suitable summary statistics and graphs. Write a brief report for your findings.
 
 ##### Load and examine dataset:
-paydata <- read.csv("MLPayData_Total.csv")
+
+```{r 4.1}
 names(paydata)
+```
 
 ##### select the variables we are interested in: team names, team total payroll from 1998 to 2014 (in billions), fraction of games won from 1998 to 2014, and payroll (in millions) and fraction of games won for the years we want to examine:  
+
+```{r 4.1.1}
 paydata1 <- paydata[,c(3,1:2,4,54,12,46,20,38)]
 head(paydata1)
+```
 
-##### rename the variables to more intelligible names: 
+##### rename the variables to more intelligible names:
+```{r 4.1.2}
 names(paydata1) <- c("team","tot.payroll","avgwin","payroll.1998","pctwin.1998","payroll.2006","pctwin.2006","payroll.2014","pctwin.2014")
 head(paydata1)
+# create a row of averages for each variable selected across all teams, and label it "average"
 
-##### create a row of averages for each variable selected across all teams, and label it "average"
 tot.mean <- apply(X = paydata1[,-1], MARGIN = 2, FUN = mean)
 tot.mean <- data.frame(t(tot.mean))
 tot.mean$team <- "average" 
 
-##### attach the row to the bottom of paydata1
+## attach the row to the bottom of paydata1
+
 paydata1 <- rbind(paydata1, tot.mean)
 paydata1[,1]
 
-##### display the observations for the teams we are interested in (Boston Red Sox & Oakland A's), plus the average across all teams  
+# display the observations for the teams we are interested in (Boston Red Sox & Oakland A's), plus the average across all teams  
 paydata1[c(4,20,31),]
 
 ##### boxplots for tot.payroll and avgwin 
 boxplot(paydata$payroll,
           ylab = "payroll (in billions)",
-          main = "Distribution of MLB payrolls between 1998 and 2014"
+          main = "Distribution of MLB payrolls between 1998 and 2014")
 boxplot(paydata$avgwin,
           ylab = "fraction of all games won", 
           main = "MLB teams average winning between 1998 and 2014")
@@ -502,32 +511,35 @@ plot(paydata$payroll, paydata$avgwin,
        ylab = "Win Percentage",
        main = "MLB Teams's Overall Win Percentage vs. Payroll")
 
+
 ##### Add a regression line 
+
 myfit0 <- lm(avgwin~tot.payroll, data=paydata1)
-  summary(myfit0)
-  
-    abline(myfit0, col="red", lwd=4)
+summary(myfit0)
+abline(myfit0, col="red", lwd=4)
   
 ##### Identify the Oakland A's and Boston Red Sox in the scatterplot. 
 identify(paydata1$tot.payroll, paydata1$avgwin, labels=paydata1$team) 
-
-#### ii) For a given year, is payroll a significant variable to predict the winning percentage of that year? Choose a year and run a regression to examine this. You may try this for a few different years. Explain your results.
+```
+#### ii) 
+__Question: For a given year, is payroll a significant variable to predict the winning percentage of that year? Choose a year and run a regression to examine this. You may try this for a few different years. Explain your results.__
 
 ##### Run a regression of the relationship between payroll and win percentage for 1998, 2006, and 2014
 
-  myfit1998 <- lm(pctwin.1998~payroll.1998, data=paydata1)  
-  summary(myfit1998)
+```{r regression_line}
+myfit1998 <- lm(pctwin.1998~payroll.1998, data=paydata1)  
+summary(myfit1998)
   
-  myfit2006 <- lm(pctwin.2006~payroll.2006, data=paydata1)  
-  summary(myfit2006)
+myfit2006 <- lm(pctwin.2006~payroll.2006, data=paydata1)  
+summary(myfit2006)
   
-  myfit2014 <- lm(pctwin.2014~payroll.2014, data=paydata1)  
-  summary(myfit2014)
+myfit2014 <- lm(pctwin.2014~payroll.2014, data=paydata1)  
+summary(myfit2014)
 
 ##### Plot the regression line for 1998, 2006, 2014, and the average for all 16 years as a point of comparison 
-  par(mfrow = c(2,2))
+par(mfrow = c(2,2))
     
-    plot(paydata1$payroll.1998, paydata1$pctwin.1998, 
+plot(paydata1$payroll.1998, paydata1$pctwin.1998, 
        pch  = 16, 
        cex  = 1.2,
        col  = "blue",
@@ -536,9 +548,9 @@ identify(paydata1$tot.payroll, paydata1$avgwin, labels=paydata1$team)
        xlim = c(0, 250),
        ylim = c(0.4, 0.7),
        main = "MLB Teams's Win Percentage vs. Payroll in 1998")
-    abline(myfit1998, col="red", lwd=4) 
+abline(myfit1998, col="red", lwd=4) 
 
-    plot(paydata1$payroll.2006, paydata1$pctwin.2006, 
+plot(paydata1$payroll.2006, paydata1$pctwin.2006, 
        pch  = 16, 
        cex  = 1.2,
        col  = "blue",
@@ -547,9 +559,9 @@ identify(paydata1$tot.payroll, paydata1$avgwin, labels=paydata1$team)
        xlim = c(0, 250),
        ylim = c(0.4, 0.7),
        main = "MLB Teams's Win Percentage vs. Payroll in 2006")
-    abline(myfit2006, col="red", lwd=4) 
+abline(myfit2006, col="red", lwd=4) 
   
-    plot(paydata1$payroll.2014, paydata1$pctwin.2014, 
+plot(paydata1$payroll.2014, paydata1$pctwin.2014, 
        pch  = 16, 
        cex  = 1.2,
        col  = "blue",
@@ -558,17 +570,18 @@ identify(paydata1$tot.payroll, paydata1$avgwin, labels=paydata1$team)
        xlim = c(0, 250),
        ylim = c(0.4, 0.7),
        main = "MLB Teams's Win Percentage vs. Payroll in 2014")
-    abline(myfit2014, col="red", lwd=4) 
+abline(myfit2014, col="red", lwd=4) 
     
-    plot(paydata$payroll, paydata$avgwin, 
+plot(paydata$payroll, paydata$avgwin, 
        pch  = 16, 
        cex  = 1.2,
        col  = "blue",
        xlab = "Payroll", 
        ylab = "Win Percentage",
        main = "MLB Teams's Overall Win Percentage vs. Payroll")
-    abline(myfit0, col="red", lwd=4)
-  
+abline(myfit0, col="red", lwd=4)
+```
+ 
 #### iii) Now use the aggregated information, and use regression to analyze the relation between total payroll and overall winning percentage. Run appropriate model(s) to answer the following questions.
 ##### a) In this analysis do the Boston Red Sox perform reasonably well given their total payroll? [Use a 95% prediction interval.]
 
