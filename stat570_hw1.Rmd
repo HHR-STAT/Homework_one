@@ -350,7 +350,7 @@ plot(x,y)
 abline(fitlm, col="red", lwd=4)
 ```
 
-The estimated beta0 is `r fitlm$coefficients[1]`, estimated beta1 is `r fitlm$coefficient[2]`. The estimated equation is y = `r fitlm$coefficients[1,1]` + `r fitlm$coefficients[2,1]` $\times$ x The 95% confindence interval for beta1 is (`r summary$coefficients[1,2]`, `r summary$coefficients[2,2]`), which captures the true beta1. The RSE is 1.825, which is reasonably close to 2.
+The estimated beta0 is `r summary$coefficients[1,1]`, estimated beta1 is `r summary$coefficient[2]`. The estimated equation is y = `r summary$coefficients[1,1]` + `r summary$coefficients[2,1]` $\times$ x The 95% confindence interval for beta1 is (`r summary$coefficients[2,1] - 1.96 * summary$coefficients[2,2]`, `r summary$coefficients[2,1] + 1.96 *summary$coefficients[2,2]`), which captures the true beta1. The RSE is `r summary$sigma` on 38 d.f., which is reasonably close to 2.
 
 #### b. i) 
 The function I used for generating the samples:
