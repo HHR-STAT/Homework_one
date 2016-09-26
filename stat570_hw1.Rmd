@@ -324,29 +324,33 @@ Number of wharton listeners =  $p \times 51.6 =  2.6 million$
 
 ### Question 3 
 #### a. i) 
-The following code generates this sample of `(x,y)` pairs and make a scatter plot:
-```{r}
+The following code generates this sample of (x,y) pairs and make a scatter plot:
+
+```{r question3}
 x = seq(0,1,length=40)
 y = vector(mode = "numeric", length = 40)
 for (i in 1:40){
 y[i] = 1 + 1.2*x[i] + rnorm(1,0,sd=2)}
 plot(x,y)
 ```
+
 #### ii) 
 The following code fits an lm model and draw the line over the plot above
 
-```{r}
+```{r question3.1, fig.height=3, fig.width = 3}
 fitlm = lm(y~x)
-summary(fitlm)
+summary = summary(fitlm)
+print(summary)
 ```
+
 Then the fitted line can be ploted on top of the observations:
 
-```{r}
+```{r question3.2, fig.height=3, fig.width = 3}
 plot(x,y)
 abline(fitlm, col="red", lwd=4)
 ```
 
-The estimated beta0 is 0.6920, estimated beta1 is 1.8477. The estimated equation is `y = 0.6920 + 1.8477*x` The 95% confindence interval for beta1 is `(-0.3483492 4.043683)`, which captures the true beta1. The RSE is 1.825, which is reasonably close to 2.
+The estimated beta0 is `r fitlm$coefficients[1]`, estimated beta1 is `r fitlm$coefficient[2]`. The estimated equation is y = `r fitlm$coefficients[1,1]` + `r fitlm$coefficients[2,1]` $\times$ x The 95% confindence interval for beta1 is (`r summary$coefficients[1,2]`, `r summary$coefficients[2,2]`), which captures the true beta1. __The RSE is 1.825, which is reasonably close to 2.__
 
 #### b. i) 
 The function I used for generating the samples:
