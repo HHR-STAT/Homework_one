@@ -675,6 +675,7 @@ summary[1,i]= ave; summary[2,i]=std; summary[3,i]=qt[2]; summary[4,i]=qt[3]
 summary[5,i]=qt[4]}
 colnames(summary) = colnames(Auto)
 row.names(summary) = c("mean","sd","25% quantile", "50% quantile", "75% quantile")
+print(summary)
 ```
 
 **Interesting observations** The relation between mpg and several predictors, such as diplacement, acceleration, weight and horsepower may be better modeled with a log transformed linear model. There also appears to have a lot of colinearity among weight, acceleration, horsepower and displacement.
