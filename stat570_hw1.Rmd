@@ -414,7 +414,7 @@ The distribution of beta1 seems to center around `r mean(beta1)`, which is prett
 __Display your confidence intervals graphically. [Optional: Is there any noticeable relation
 between the length of the interval and whether or not it covers the true β1 ? – You may want to collect more than 100 samples to investigate this.]__
 
-There are 97 times that my 95% CI convered the true beta1 in this simulation.
+There are about 97 times that my 95% CI convered the true beta1 in this simulation.
 The confidence intervals are plotted in the figure below. This part is also integrated into a function like above for the sake of reproduceability.
 
 ```{r}
@@ -462,16 +462,25 @@ With this set of functions, we can try multiple user-defined simulations, and pl
 ```{r}
 numsim = 100
 simsize = seq(numsim)
-result = vector(mode="numeric",length=numsim)
+result = data.frame(matrix(data=NA, ncol=2,nrow=100))
 for (i in 1:numsim){
 sim = simlm(10*i,100,1,1.2,2)
 outs = ci_out(sim,1.2)
-result[i] = outs
+result[i,1] = outs[1]
+result[i,2] = outs[2]
 }
-plot(simsize, result, col="blue", cex=1, xlab="Sample size/10", ylab="Percentage of CI's that fail to capture the true mean")
-```
+plot(simsize, result[,2], col="blue", cex=1, xlab="Sample size/10", ylab="Percentage of CI's that fail to capture the true mean")
 
-The result appears to be pretty random. Therefore there isn't a relation between sample size and whether the CI derived from the sample could capture true mean.
+result = result[order(result[,2]),]
+plot(result[,1], result[,2], col="blue", cex=1, xlab="Length of CI", ylab="Percentage of CI's that fail to capture the true mean")
+abline(lm(result[,2]~result[,1]), col="red")
+
+fitci = lm(result[,2]~result[,1])
+summary(fitci)
+
+```
+The result appears to be pretty random. Therefore there isn't a relation between sample size and whether the CI derived from the sample could capture true mean. And the second plot shows that there is essentially no correlation between the length of CI and the percentage of CI's that fails to capture the true mean. This is also confirmed by the regression model, whose p-value is about 0.5.
+
 
 
 
